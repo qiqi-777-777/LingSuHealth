@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lingsu.health.mapper.HealthCheckinMapper">
+
+    <resultMap id="BaseResultMap" type="com.lingsu.health.entity.HealthCheckin">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="checkin_date" property="checkinDate" jdbcType="DATE"/>
+        <result column="sleep_hours" property="sleepHours" jdbcType="DECIMAL"/>
+        <result column="sleep_time" property="sleepTime" jdbcType="TIME"/>
+        <result column="symptoms" property="symptoms" jdbcType="VARCHAR"/>
+        <result column="mood" property="mood" jdbcType="INTEGER"/>
+        <result column="exercise_minutes" property="exerciseMinutes" jdbcType="INTEGER"/>
+        <result column="diet_notes" property="dietNotes" jdbcType="VARCHAR"/>
+        <result column="followed_plan" property="followedPlan" jdbcType="BOOLEAN"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    
+    <select id="getRecentCheckins" resultMap="BaseResultMap">
+        SELECT * FROM health_checkins 
+        WHERE user_id = #{userId} 
+        AND checkin_date >= #{startDate}
+        ORDER BY checkin_date DESC
+    </select>
+
+    <select id="getConsecutiveDays" resultType="java.lang.Integer">
+        SELECT COUNT(*) 
+        FROM health_checkins 
+        WHERE user_id = #{userId}
+          AND checkin_date >= #{startDate}
+    </select>
+
+</mapper>

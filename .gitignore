@@ -1,0 +1,59 @@
+# Java / Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+logs/
+/log/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 敏感配置文件（重要！）
+src/main/resources/application.yml
+src/main/resources/application.properties
+!src/main/resources/application.yml.template
+
+# Spring Boot
+HELP.md
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node / Vue
+ui/node_modules/
+ui/dist/
+ui/.env
+ui/.env.local
+ui/.env.*.local
+ui/npm-debug.log*
+ui/yarn-debug.log*
+ui/yarn-error.log*
+
+# 数据库备份
+*.sql
+!lingsu_health.sql
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*~.nib

@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: LingSuHealth
+  datasource:
+    url: jdbc:mysql://localhost:3306/lingsu_health?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+    username: YOUR_MYSQL_USERNAME  # 修改为实际的数据库用户名
+    password: YOUR_MYSQL_PASSWORD  # 修改为实际的数据库密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath*:/mapper/HealthCheckinMapper.xml
+  type-aliases-package: com.lingsu.health.entity
+
+deepseek:
+  api:
+    key: YOUR_DEEPSEEK_API_KEY  # 修改为实际的 DeepSeek API Key
+    url: https://api.deepseek.com/v1/chat/completions
+
+# 生产环境配置建议
+# logging:
+#   level:
+#     root: INFO
+#     com.lingsu.health: INFO
+#   file:
+#     name: /var/log/lingsu-health/application.log
+#     max-size: 10MB
+#     max-history: 30
+
