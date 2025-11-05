@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
+// 开发环境使用代理，生产环境使用环境变量或默认代理
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const api = axios.create({ baseURL });
 
 // 添加请求拦截器，自动添加用户认证信息
 api.interceptors.request.use(
