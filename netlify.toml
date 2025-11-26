@@ -1,6 +1,7 @@
 [build]
-  command = "cd ui && npm install && npm run build"
-  publish = "ui/dist"
+  base = "ui"
+  command = "npm install && npm run build"
+  publish = "dist"
 
 [[redirects]]
   from = "/*"
@@ -9,3 +10,4 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  VITE_API_BASE_URL = "${VITE_API_BASE_URL}"
