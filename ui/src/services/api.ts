@@ -32,8 +32,40 @@ export const postCheckin = (payload?: any) =>
 export const getCheckinSummary = () =>
   api.get('/checkin/summary').then(r => r.data);
 
+export const checkTodayCheckin = () =>
+  api.get('/checkin/check-today').then(r => r.data);
+
 export const searchKnowledge = (keyword: string) =>
   api.get('/knowledge/search', { params: { keyword } }).then(r => r.data);
+
+export const getAllKnowledge = () =>
+  api.get('/knowledge/all').then(r => r.data);
+
+export const getKnowledgeById = (id: number) =>
+  api.get(`/knowledge/${id}`).then(r => r.data);
+
+export const getKnowledgeByCategory = (category: string) =>
+  api.get(`/knowledge/category/${category}`).then(r => r.data);
+
+export const getKnowledgeCategories = () =>
+  api.get('/knowledge/categories').then(r => r.data);
+
+export const createKnowledge = (data: any) =>
+  api.post('/knowledge', data).then(r => r.data);
+
+export const updateKnowledge = (id: number, data: any) =>
+  api.put(`/knowledge/${id}`, data).then(r => r.data);
+
+export const deleteKnowledge = (id: number) =>
+  api.delete(`/knowledge/${id}`).then(r => r.data);
+
+export const uploadKnowledgeImage = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/knowledge/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }).then(r => r.data);
+};
 
 export const askAssistant = (question: any) =>
   api.post('/assistant/ask', question).then(r => r.data);

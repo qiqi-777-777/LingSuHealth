@@ -1,19 +1,104 @@
 package com.lingsu.health.controller;
 
-import com.lingsu.health.dto.Dtos.KnowledgeItem;
+import com.lingsu.health.entity.KnowledgeItem;
+import com.lingsu.health.service.KnowledgeService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/knowledge")
 public class KnowledgeController {
+    
+    @Autowired
+    private KnowledgeService knowledgeService;
+    
+    /**
+     * 搜索知识库
+     */
     @GetMapping("/search")
-    public List<KnowledgeItem> search(@RequestParam String keyword) {
-        KnowledgeItem i = new KnowledgeItem();
-        i.name = "枸杞"; i.tcmEffect = "滋补肝肾，益精明目";
-        i.westernNutrition = "含多糖、类胡萝卜素与微量元素";
-        i.suitable = "阴虚体质"; i.taboo = "感冒发烧、糖尿病患者谨慎";
-        return List.of(i);
+    public List<KnowledgeItem> search(@RequestParam(required = false) String keyword) {
+        return knowledgeService.search(keyword);
+    }
+    
+    /**
+     * 获取所有知识库条目
+     */
+    @GetMapping("/all")
+    public List<KnowledgeItem> findAll() {
+        return knowledgeService.findAll();
+    }
+    
+    /**
+     * 按分类查询
+     */
+    @GetMapping("/category/{category}")
+    public List<KnowledgeItem> findByCategory(@PathVariable String category) {
+        return knowledgeService.findByCategory(category);
+    }
+    
+    /**
+     * 获取所有分类
+     */
+    @GetMapping("/categories")
+    public List<String> getCategories() {
+        return knowledgeService.getAllCategories();
+    }
+    
+    /**
+     * 根据ID获取
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<KnowledgeItem> findById(@PathVariable Long id) {
+        KnowledgeItem item = knowledgeService.findById(id);
+        if (item == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(item);
+    }
+    
+    /**
+     * 创建知识库条目
+     */
+    @PostMapping
+    public KnowledgeItem create(@RequestBody KnowledgeItem item) {
+        return knowledgeService.create(item);
+    }
+    
+    /**
+     * 更新知识库条目
+     */
+    @PutMapping("/{id}")
+    public KnowledgeItem update(@PathVariable Long id, @RequestBody KnowledgeItem item) {
+        return knowledgeService.update(id, item);
+    }
+    
+    /**
+     * 删除知识库条目
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        knowledgeService.delete(id);
+        return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * 上传图片
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = knowledgeService.uploadImage(file);
+            Map<String, String> response = new HashMap<>();
+            response.put("imageUrl", imageUrl);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

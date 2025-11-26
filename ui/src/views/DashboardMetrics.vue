@@ -1,13 +1,18 @@
-<template>
+﻿<template>
   <div class="dashboard-metrics">
-    <button class="back-btn back-top-left" @click="goBack">← 返回首页</button>
+    <button class="back-btn back-top-left" @click="goBack">
+      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>返回首页</span>
+    </button>
     <div class="metrics-header">
       <h1>健康仪表盘</h1>
       <p>实时监控您的健康数据</p>
     </div>
 
     <div class="metrics-grid">
-      <!-- 近7天打卡数 -->
+      <!-- 近7天记录数 -->
       <div class="metric-card">
         <div class="metric-icon sleep">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -15,13 +20,13 @@
           </svg>
         </div>
         <div class="metric-content">
-          <h3>近7天打卡数</h3>
+          <h3>近7天记录数</h3>
           <div class="metric-value">{{ summary.totalCheckins }}</div>
           <div class="metric-status good">趋势统计</div>
         </div>
       </div>
 
-      <!-- 连续打卡天数 -->
+      <!-- 连续记录天数 -->
       <div class="metric-card">
         <div class="metric-icon activity">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -29,7 +34,7 @@
           </svg>
         </div>
         <div class="metric-content">
-          <h3>连续打卡天数</h3>
+          <h3>连续记录天数</h3>
           <div class="metric-value">{{ summary.consecutiveDays }}</div>
           <div class="metric-status normal">坚持就是胜利</div>
         </div>
@@ -71,6 +76,23 @@
       </div>
       <div class="mood-card">
         <canvas id="moodDonutCanvas"></canvas>
+        <!-- 鼠标悬停提示框 -->
+        <div v-if="moodTooltip.show" class="mood-tooltip" :style="{
+          left: moodTooltip.x + 'px',
+          top: moodTooltip.y + 'px'
+        }">
+          <div class="tooltip-header">{{ moodTooltip.label }}</div>
+          <div class="tooltip-content">
+            <div class="tooltip-item">
+              <span class="tooltip-icon">📊</span>
+              <span>共 {{ moodTooltip.count }} 天</span>
+            </div>
+            <div class="tooltip-divider"></div>
+            <div v-for="(state, index) in moodTooltip.moodStates" :key="index" class="tooltip-item mood-detail">
+              <span>{{ state }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -88,7 +110,13 @@ import { getCheckinSummary, getHealthTrends } from '../services/api';
 
 // 类型定义
 type TrendItem = { date: string; sleepHours: number | null; exerciseMinutes: number | null };
-type MoodCounts = { positive: number; neutral: number; negative: number; sampleDays: number };
+type MoodCounts = { 
+  positive: number; 
+  neutral: number; 
+  negative: number; 
+  sampleDays: number;
+  moodDetails: { [key: number]: number }; // 记录每种具体情绪的数量
+};
 
 // 路由
 const router = useRouter();
@@ -109,7 +137,21 @@ const trends = ref<Array<{
 }>>([]);
 const loading = ref(true);
 const trendAggregated = ref<TrendItem[]>([]);
-const moodCounts = ref<MoodCounts>({ positive: 0, neutral: 0, negative: 0, sampleDays: 0 });
+const moodCounts = ref<MoodCounts>({ positive: 0, neutral: 0, negative: 0, sampleDays: 0, moodDetails: {} });
+
+// 情绪状态映射（与Checkin.vue保持一致）
+const moodLabels = ['很差', '一般', '良好', '很好', '极佳'];
+const moodEmojis = ['😢', '😕', '😊', '😄', '🤩'];
+
+// Tooltip状态
+const moodTooltip = ref({
+  show: false,
+  x: 0,
+  y: 0,
+  label: '',
+  count: 0,
+  moodStates: [] as string[]
+});
 
 // 解析症状（兼容 string[] 或 JSON 字符串）
 function normalizeSymptoms(sym: unknown): string[] {
@@ -230,10 +272,14 @@ onMounted(async () => {
     }));
 
     // 统计情绪分布（示例分段：0-1 负面，2 中性，3-4 正面）
-    const mc: MoodCounts = { positive: 0, neutral: 0, negative: 0, sampleDays: 0 };
+    const mc: MoodCounts = { positive: 0, neutral: 0, negative: 0, sampleDays: 0, moodDetails: {} };
     trends.value.forEach(d => {
       if (typeof d.mood === 'number') {
         mc.sampleDays += 1;
+        // 统计具体情绪
+        mc.moodDetails[d.mood] = (mc.moodDetails[d.mood] || 0) + 1;
+        
+        // 分类统计
         if (d.mood <= 1) mc.negative += 1;
         else if (d.mood === 2) mc.neutral += 1;
         else mc.positive += 1;
@@ -467,15 +513,25 @@ function drawAnimatedDonutChart(canvasId: string, mood: MoodCounts) {
 
   const total = Math.max(1, mood.positive + mood.neutral + mood.negative);
   const parts = [
-    { v: mood.positive, color: '#4CAF50' },
-    { v: mood.neutral, color: '#FFC107' },
-    { v: mood.negative, color: '#F44336' },
+    { v: mood.positive, color: '#4CAF50', label: '正面情绪', moodRange: [3, 4] },
+    { v: mood.neutral, color: '#FFC107', label: '中性情绪', moodRange: [2] },
+    { v: mood.negative, color: '#F44336', label: '负面情绪', moodRange: [0, 1] },
   ];
 
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - 20;
   const innerR = r * 0.65;
+  
+  // 存储每个扇形的角度范围，用于鼠标检测
+  const sectors: Array<{
+    startAngle: number;
+    endAngle: number;
+    label: string;
+    count: number;
+    color: string;
+    moodRange: number[];
+  }> = [];
 
   let startAngle = -Math.PI / 2;
   const duration = 900;
@@ -494,10 +550,23 @@ function drawAnimatedDonutChart(canvasId: string, mood: MoodCounts) {
     ctx.lineWidth = r - innerR;
     ctx.stroke();
 
-    // 动画填充
+    // 动画填充并记录扇形范围
+    sectors.length = 0; // 清空旧数据
     let angle = startAngle;
     parts.forEach(p => {
-      const sweep = (p.v / total) * Math.PI * 2 * t;
+      const fullSweep = (p.v / total) * Math.PI * 2;
+      const sweep = fullSweep * t;
+      
+      // 记录扇形信息（使用完整角度）
+      sectors.push({
+        startAngle: angle,
+        endAngle: angle + fullSweep,
+        label: p.label,
+        count: p.v,
+        color: p.color,
+        moodRange: p.moodRange
+      });
+      
       ctx.beginPath();
       ctx.strokeStyle = p.color;
       ctx.lineWidth = r - innerR;
@@ -539,6 +608,92 @@ function drawAnimatedDonutChart(canvasId: string, mood: MoodCounts) {
     if (t < 1) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+  
+  // 添加鼠标移动事件监听
+  canvas.addEventListener('mousemove', (e: MouseEvent) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // 计算鼠标相对于圆心的距离和角度
+    const dx = mouseX - cx;
+    const dy = mouseY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // 检查是否在圆环范围内
+    if (dist >= innerR && dist <= r) {
+      let angle = Math.atan2(dy, dx);
+      // 调整角度，使其与绘图起始角度一致
+      angle = angle - startAngle;
+      if (angle < 0) angle += Math.PI * 2;
+      
+      // 查找对应的扇形
+      for (const sector of sectors) {
+        let sectorStart = sector.startAngle - startAngle;
+        let sectorEnd = sector.endAngle - startAngle;
+        if (sectorStart < 0) sectorStart += Math.PI * 2;
+        if (sectorEnd < 0) sectorEnd += Math.PI * 2;
+        
+        // 处理跨越0度的情况
+        const inSector = sectorStart <= sectorEnd 
+          ? (angle >= sectorStart && angle <= sectorEnd)
+          : (angle >= sectorStart || angle <= sectorEnd);
+        
+        if (inSector && sector.count > 0) {
+          // 获取该类别下的具体情绪状态
+          const moodStates: string[] = [];
+          sector.moodRange.forEach(moodIndex => {
+            const count = mood.moodDetails[moodIndex] || 0;
+            if (count > 0) {
+              moodStates.push(`${moodEmojis[moodIndex]} ${moodLabels[moodIndex]} (${count}天)`);
+            }
+          });
+          
+          // 计算tooltip位置，确保不超出边界
+          const tooltipWidth = 180; // 预估tooltip宽度
+          const tooltipHeight = 100; // 预估tooltip高度
+          let tooltipX = e.clientX - rect.left + 15;
+          let tooltipY = e.clientY - rect.top - 10;
+          
+          // 防止超出右边界
+          if (tooltipX + tooltipWidth > width) {
+            tooltipX = e.clientX - rect.left - tooltipWidth - 15;
+          }
+          
+          // 防止超出下边界
+          if (tooltipY + tooltipHeight > height) {
+            tooltipY = height - tooltipHeight - 10;
+          }
+          
+          // 防止超出上边界
+          if (tooltipY < 0) {
+            tooltipY = 10;
+          }
+          
+          moodTooltip.value = {
+            show: true,
+            x: tooltipX,
+            y: tooltipY,
+            label: sector.label,
+            count: sector.count,
+            moodStates: moodStates
+          };
+          canvas.style.cursor = 'pointer';
+          return;
+        }
+      }
+    }
+    
+    // 不在任何扇形内
+    moodTooltip.value.show = false;
+    canvas.style.cursor = 'default';
+  });
+  
+  // 鼠标离开canvas时隐藏tooltip
+  canvas.addEventListener('mouseleave', () => {
+    moodTooltip.value.show = false;
+    canvas.style.cursor = 'default';
+  });
 }
 
 function goBack() {
@@ -550,7 +705,7 @@ function goBack() {
 .dashboard-metrics {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e6edf7 100%);
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
   padding: 40px 20px;
 }
 
@@ -646,27 +801,77 @@ function goBack() {
 /* 左上角返回按钮 */
 .back-top-left {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
+  top: 10px;
+  left: 20px;
+  z-index: 100;
 }
 
-/* 按钮样式 */
+/* 按钮样式 - 现代毛玻璃效果 */
 .back-btn {
-  background: #ffffff;
-  color: #6b7280;
-  border: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
 }
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
+}
+
 .back-btn:hover {
-  border-color: #7c3aed;
-  color: #7c3aed;
-  transform: translateY(-1px);
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 /* 图表布局 */
@@ -681,6 +886,70 @@ function goBack() {
 .mood-card {
   width: 340px;
   min-width: 300px;
+  position: relative;
+}
+
+/* Tooltip样式 */
+.mood-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 140px;
+  backdrop-filter: blur(10px);
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 6px;
+}
+
+.tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tooltip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.tooltip-icon {
+  font-size: 16px;
+}
+
+.tooltip-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 6px 0;
+}
+
+.mood-detail {
+  font-size: 12px;
+  color: #e0e0e0;
+  padding-left: 4px;
 }
 #trendLineCanvas, #moodDonutCanvas {
   width: 100%;

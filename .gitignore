@@ -28,8 +28,8 @@ logs/
 Thumbs.db
 
 # 敏感配置文件（重要！）
-src/main/resources/application.yml
-src/main/resources/application.properties
+# src/main/resources/application.yml
+# src/main/resources/application.properties
 !src/main/resources/application.yml.template
 
 # Spring Boot

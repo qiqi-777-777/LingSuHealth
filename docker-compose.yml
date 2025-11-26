@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: lingsu-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: lingsu_health
+      MYSQL_USER: lingshu_user
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./lingsu_health.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - lingsu-network
+
+  # Spring Boot 后端
+  backend:
+    build: .
+    container_name: lingsu-backend
+    depends_on:
+      - mysql
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/lingsu_health
+      SPRING_DATASOURCE_USERNAME: lingshu_user
+      SPRING_DATASOURCE_PASSWORD: 123456
+    networks:
+      - lingsu-network
+
+  # Nginx + 前端
+  frontend:
+    image: nginx:alpine
+    container_name: lingsu-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./ui/dist:/usr/share/nginx/html
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - lingsu-network
+
+volumes:
+  mysql-data:
+
+networks:
+  lingsu-network:
+    driver: bridge
+
+

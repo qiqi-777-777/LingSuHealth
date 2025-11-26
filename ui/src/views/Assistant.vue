@@ -1,15 +1,14 @@
-<template>
+﻿<template>
   <div class="assistant-container">
-    <!-- 返回首页按钮 -->
-    <div class="back-to-home">
-      <button @click="goHome" class="back-btn">
-        ← 返回首页
-      </button>
-    </div>
-    
     <!-- 头部 -->
     <div class="header">
       <div class="header-content">
+        <button @click="goHome" class="back-btn-header">
+          <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          <span>返回首页</span>
+        </button>
         <div class="title-section">
           <div class="icon">
             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -17,7 +16,7 @@
             </svg>
           </div>
           <div>
-            <h1>AI问答助手</h1>
+            <h1>灵素小助手</h1>
             <p>专业的中医健康咨询，随时为您答疑解惑</p>
           </div>
         </div>
@@ -34,7 +33,7 @@
           </div>
           <div class="message-content">
             <div class="message-bubble">
-              <p>您好！我是您的AI健康顾问，专注于中医养生和健康咨询。</p>
+              <p>您好，我叫灵素，是您的AI健康顾问</p>
               <p>您可以向我咨询：</p>
               <ul>
                 <li>🌿 中医体质调理建议</li>
@@ -271,38 +270,86 @@ function formatAnswer(text: string): string {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
+  position: relative; /* 使左上角按钮锚定到本容器 */
 }
 
-/* 返回首页按钮 */
-.back-to-home {
-  position: absolute;
-  top: 20px;
+/* 左上角返回按钮 */
+.back-top-left {
+  position: fixed;
+  top: 10px;
   left: 20px;
-  z-index: 10;
+  z-index: 9999;
 }
 
+/* 按钮样式 - 现代毛玻璃效果 */
 .back-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: #667eea;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  backdrop-filter: blur(10px);
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 14px;
+  border-radius: 25px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
 }
 
 .back-btn:hover {
-  background: white;
-  border-color: #667eea;
-  color: #5a67d8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 /* 头部样式 */
@@ -315,10 +362,16 @@ function formatAnswer(text: string): string {
 
 .header-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
+}
+
+.header-content .back-btn-header {
+  position: absolute;
+  left: 0;
 }
 
 .title-section {
@@ -359,6 +412,41 @@ function formatAnswer(text: string): string {
 .status-text {
   font-size: 12px;
   font-weight: 500;
+}
+
+/* Header中的返回按钮 */
+.back-btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 14px;
+  border-radius: 25px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  white-space: nowrap;
+}
+
+.back-btn-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn-header .back-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 /* 聊天区域 */
@@ -649,7 +737,7 @@ function formatAnswer(text: string): string {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .header {
-    padding: 15px 20px;
+    padding: 15px 20px 15px 180px; /* 保持左侧padding给按钮留空间 */
   }
   
   .header-content {

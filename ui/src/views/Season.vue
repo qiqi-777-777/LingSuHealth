@@ -1,11 +1,12 @@
 <template>
   <div class="season-container">
     <!-- 返回首页按钮 -->
-    <div class="back-to-home">
-      <button @click="goHome" class="back-btn">
-        ← 返回首页
-      </button>
-    </div>
+    <button @click="goHome" class="back-btn back-top-left">
+      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>返回首页</span>
+    </button>
     
     <!-- 页面头部 -->
     <div class="page-header">
@@ -178,36 +179,85 @@ onMounted(() => {
 <style scoped>
 .season-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: linear-gradient(135deg, #ffd89b 0%, #ffc3a0 100%);
+  padding: 60px 20px 20px 20px; /* 减少顶部padding */
+  position: relative;
 }
 
-/* 返回首页按钮 */
-.back-to-home {
-  margin-bottom: 20px;
+/* 左上角返回按钮 */
+.back-top-left {
+  position: fixed;
+  top: 10px;
+  left: 20px;
+  z-index: 9999;
 }
 
+/* 按钮样式 - 黑色风格 */
 .back-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: #667eea;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  backdrop-filter: blur(10px);
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 24px;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
 }
 
 .back-btn:hover {
-  background: white;
-  border-color: #667eea;
-  color: #5a67d8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 .page-header {
@@ -464,7 +514,7 @@ onMounted(() => {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .season-container {
-    padding: 15px;
+    padding: 80px 15px 15px 15px; /* 保持顶部padding给按钮留空间 */
   }
   
   .page-title {

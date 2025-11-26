@@ -28,20 +28,19 @@ public class HealthCheckinService {
     @Transactional
     public HealthCheckin saveCheckin(Long userId, Map<String, Object> checkinData) {
         try {
-            // 每次提交都创建新记录，不限制每天只能打卡一次
             HealthCheckin checkin = new HealthCheckin();
             checkin.setUserId(userId);
             checkin.setCheckinDate(LocalDate.now());
             log.info("为用户 {} 创建新的打卡记录", userId);
     
-            // 删除“今日已打卡”校验，允许一天多次
-            // 原代码：
-            // QueryWrapper<HealthCheckin> existsWrapper = new QueryWrapper<>();
-            // existsWrapper.eq("user_id", userId)
-            //              .eq("checkin_date", checkin.getCheckinDate());
-            // if (healthCheckinMapper.selectCount(existsWrapper) > 0) {
-            //     throw new IllegalArgumentException("今日已打卡，请勿重复提交");
-            // }
+            // 检查今日是否已打卡
+            QueryWrapper<HealthCheckin> existsWrapper = new QueryWrapper<>();
+            existsWrapper.eq("user_id", userId)
+                         .eq("checkin_date", checkin.getCheckinDate());
+            if (healthCheckinMapper.selectCount(existsWrapper) > 0) {
+                log.warn("用户 {} 今日已打卡，禁止重复提交", userId);
+                throw new IllegalArgumentException("今日已打卡，每天只能打卡一次");
+            }
     
             // 安全地设置打卡数据，添加类型检查和异常处理
             if (checkinData.get("sleepHours") != null) {
@@ -164,5 +163,27 @@ public class HealthCheckinService {
         }
         
         return consecutiveDays;
+    }
+    
+    /**
+     * 检查今日是否已打卡
+     */
+    public boolean hasCheckedInToday(Long userId) {
+        QueryWrapper<HealthCheckin> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId)
+                   .eq("checkin_date", LocalDate.now());
+        return healthCheckinMapper.selectCount(queryWrapper) > 0;
+    }
+    
+    /**
+     * 获取今日打卡记录
+     */
+    public HealthCheckin getTodayCheckin(Long userId) {
+        QueryWrapper<HealthCheckin> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_id", userId)
+                   .eq("checkin_date", LocalDate.now())
+                   .orderByDesc("created_at")
+                   .last("LIMIT 1");
+        return healthCheckinMapper.selectOne(queryWrapper);
     }
 }

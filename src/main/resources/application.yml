@@ -1,0 +1,40 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: LingSuHealth
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/lingsu_health?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath*:/mapper/HealthCheckinMapper.xml
+  type-aliases-package: com.lingsu.health.entity
+
+deepseek:
+  api:
+    key: ${DEEPSEEK_API_KEY:sk-b0b4f0292f8848c483ec8e1a847c6766}
+    url: ${DEEPSEEK_API_URL:https://api.deepseek.com/v1/chat/completions}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

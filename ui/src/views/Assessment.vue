@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { getAssessmentReport } from '../services/api';
@@ -53,7 +53,7 @@ const questions: Question[] = [
   },
   {
     question: "您更希望通过哪种方式开启健康生活？",
-    options: ["每日打卡挑战", "饮食记录+推荐", "运动跟练计划", "冥想/呼吸练习", "一站式健康方案"],
+    options: ["每日记录挑战", "饮食记录+推荐", "运动跟练计划", "冥想/呼吸练习", "一站式健康方案"],
   },
 ];
 
@@ -229,9 +229,12 @@ function selectOption(qIndex: number, optIndex: number) {
 <template>
   <div class="assessment-container">
     <!-- 返回首页 -->
-    <div class="back-to-home">
-      <button @click="goHome" class="back-btn">← 返回首页</button>
-    </div>
+    <button @click="goHome" class="back-btn back-top-left">
+      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>返回首页</span>
+    </button>
 
     <!-- 保留完成提示视图 -->
     <div v-if="submittedSuccess" class="complete-container">
@@ -329,36 +332,93 @@ function selectOption(qIndex: number, optIndex: number) {
 
 <style scoped>
 .assessment-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
   min-height: 100vh;
+  padding: 80px 20px 20px 20px;
+  position: relative;
 }
 
-/* 返回首页按钮 */
-.back-to-home {
-  margin-bottom: 20px;
+.assessment-container > *:not(.back-top-left) {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
+/* 左上角返回按钮 */
+.back-top-left {
+  position: fixed;
+  top: 10px;
+  left: 20px;
+  z-index: 9999;
+  margin: 0 !important;
+}
+
+/* 按钮样式 - 现代毛玻璃效果 */
 .back-btn {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: #6c757d;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 24px;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
 }
 
 .back-btn:hover {
-  background: #f8f9fa;
-  border-color: #dee2e6;
-  color: #495057;
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 /* 问卷容器 */
@@ -635,7 +695,7 @@ function selectOption(qIndex: number, optIndex: number) {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .assessment-container {
-    padding: 10px;
+    padding: 80px 10px 10px 10px; /* 保持顶部padding给按钮留空间 */
   }
 
   .question-content {

@@ -1,0 +1,47 @@
+services:
+  # 后端服务
+  - type: web
+    name: lingsuhealth-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: lingsuhealth-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: lingsuhealth-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: lingsuhealth-db
+          property: password
+      - key: DEEPSEEK_API_KEY
+        value: sk-b0b4f0292f8848c483ec8e1a847c6766
+
+  # 前端静态网站
+  - type: web
+    name: lingsuhealth-frontend
+    env: static
+    buildCommand: cd ui && npm install && npm run build
+    staticPublishPath: ./ui/dist
+    region: singapore
+    plan: free
+    branch: main
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: lingsuhealth-db
+    plan: free
+    databaseName: lingsu_health
+    user: lingshu_user
+    region: singapore
+

@@ -5,7 +5,7 @@ import Dashboard from '../views/Dashboard.vue';
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/login' },
+    { path: '/', redirect: '/dashboard' },
     { path: '/login', name: 'Login', component: Login },
     { path: '/dashboard', name: 'Dashboard', component: Dashboard },
     { path: '/dashboard-metrics', component: () => import('../views/DashboardMetrics.vue') },

@@ -43,12 +43,17 @@ public class Dtos {
         public void setHistory(List<Map<String, String>> history) { this.history = history; }
     }
 
-    public static class KnowledgeItem {
+    public static class KnowledgeItemDto {
+        public Long id;
         public String name;         // 食材/药材名称
+        public String category;     // 分类
+        public String imageUrl;     // 图片路径
         public String tcmEffect;    // 中医功效
         public String westernNutrition; // 现代营养
         public String suitable;     // 适合体质
         public String taboo;        // 禁忌
+        public String usageMethod;  // 使用方法
+        public String season;       // 适宜季节
     }
 
     public static class QAResponse {

@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-// import java.time.LocalDate;  // 删除
 import java.util.*;
 
 @Slf4j
@@ -171,5 +170,41 @@ public class CheckinController {
         }
 
         return Map.of("trends", trends);
+    }
+    
+    /**
+     * 检查今日是否已打卡
+     */
+    @GetMapping("/check-today")
+    public Map<String, Object> checkTodayCheckin(HttpServletRequest request) {
+        try {
+            Long currentUserId = getCurrentUserId(request);
+            if (currentUserId == null) {
+                return Map.of(
+                    "hasCheckedIn", false,
+                    "message", "用户未登录"
+                );
+            }
+            
+            boolean hasCheckedIn = healthCheckinService.hasCheckedInToday(currentUserId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("hasCheckedIn", hasCheckedIn);
+            
+            if (hasCheckedIn) {
+                HealthCheckin todayCheckin = healthCheckinService.getTodayCheckin(currentUserId);
+                response.put("message", "今日已打卡");
+                response.put("checkinTime", todayCheckin.getCreatedAt().toString());
+            } else {
+                response.put("message", "今日未打卡");
+            }
+            
+            return response;
+        } catch (Exception e) {
+            log.error("检查今日打卡状态失败", e);
+            return Map.of(
+                "hasCheckedIn", false,
+                "message", "检查失败"
+            );
+        }
     }
 }

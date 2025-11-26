@@ -1,7 +1,12 @@
-<template>
+﻿<template>
   <div class="change-password-page">
     <!-- 左上角返回首页 -->
-    <button class="back-btn back-top-left" @click="goHome">← 返回首页</button>
+    <button class="back-btn back-top-left" @click="goHome">
+      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>返回首页</span>
+    </button>
     <div class="page-header">
       <h2>修改密码</h2>
     </div>
@@ -171,39 +176,94 @@ const goBack = () => {
 
 <style scoped>
 .change-password-page {
-  padding: 20px;
+  padding: 80px 20px 20px 20px; /* 增加顶部padding给按钮留空间 */
   max-width: 600px;
   margin: 0 auto;
+  min-height: 100vh;
   position: relative; /* 使左上角按钮锚定到本容器 */
+  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
 }
 
-/* 左上角返回按钮 */
-.back-top-left {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-}
 
 /* 按钮样式与仪表盘一致 */
+/* 左上角返回按钮 */
+.back-top-left {
+  position: fixed;
+  top: 10px;
+  left: 20px;
+  z-index: 9999;
+}
+
+/* 按钮样式 - 现代毛玻璃效果 */
 .back-btn {
-  background: #ffffff;
-  color: #6b7280;
-  border: 2px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
 }
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
+}
+
 .back-btn:hover {
-  border-color: #7c3aed;
-  color: #7c3aed;
-  transform: translateY(-1px);
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 .page-header {
   margin-bottom: 30px;
+  margin-top: 20px; /* 增加顶部边距，避免被按钮遮挡 */
 }
 
 .page-header h2 {

@@ -1,18 +1,20 @@
 <template>
   <div class="checkin-container">
     <!-- 返回首页按钮 -->
-    <div class="back-to-home">
-      <button @click="goHome" class="back-btn">
-        ← 返回首页
-      </button>
-    </div>
+    <button @click="goHome" class="back-btn back-top-left">
+      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>返回首页</span>
+    </button>
 
-    <!-- 已打卡提示弹窗（样式2） -->
+    <!-- 已记录提示弹窗（样式2） -->
     <div v-if="showAlreadyChecked" class="checked-modal-overlay" @click="closeAlreadyChecked">
       <div class="checked-modal" @click.stop>
         <div class="checked-icon">✔️</div>
-        <h3 class="checked-title">今日已打卡</h3>
-        <p class="checked-message">今日数据已记录并同步到仪表盘</p>
+        <h3 class="checked-title">今日已记录</h3>
+        <p class="checked-message">您今天已经完成记录，每天只能记录一次哦~</p>
+        <p class="checked-sub-message">明天再来记录您的健康数据吧！</p>
         <div class="checked-actions">
           <button @click="closeAlreadyChecked" class="btn-primary">查看仪表盘</button>
           <button @click="showAlreadyChecked = false" class="btn-secondary">关闭</button>
@@ -32,7 +34,7 @@
           </div>
         </div>
         <div class="success-content">
-          <h3 class="success-title">打卡成功！</h3>
+          <h3 class="success-title">记录成功！</h3>
           <p class="success-message">您的健康数据已成功记录</p>
           <div class="success-details">
             <div class="detail-item">
@@ -46,7 +48,7 @@
           </div>
         </div>
         <div class="success-actions">
-          <button @click="continueCheckin" class="btn-continue">继续打卡</button>
+          <button @click="continueCheckin" class="btn-continue">继续记录</button>
           <button @click="goHome" class="btn-home">返回首页</button>
         </div>
       </div>
@@ -57,18 +59,18 @@
       <div class="header-content">
         <h1 class="page-title">
           <span class="title-icon">✅</span>
-          养生打卡
+          养生记录
         </h1>
         <p class="page-subtitle">记录每日养生状态，AI智能分析您的健康趋势</p>
       </div>
     </div>
 
-    <!-- 双栏布局：左侧打卡，右侧近7天历史 -->
+    <!-- 双栏布局：左侧记录，右侧近7天历史 -->
     <div class="checkin-main" v-if="!showResult">
       <div class="left-panel">
         <div class="checkin-form-card">
           <div class="form-header">
-            <h2>今日打卡</h2>
+            <h2>今日记录</h2>
             <div class="date">{{ getCurrentDate() }}</div>
           </div>
 
@@ -188,7 +190,7 @@
               class="submit-btn"
               :class="{ loading: loading }"
             >
-              <span v-if="!loading">提交打卡</span>
+              <span v-if="!loading">提交记录</span>
               <span v-else>提交中...</span>
             </button>
           </div>
@@ -197,7 +199,7 @@
 
       <aside class="right-panel">
         <div class="history-panel">
-          <h3 class="history-title">近7天打卡历史</h3>
+          <h3 class="history-title">近7天记录历史</h3>
           <div class="history-list">
             <div
               v-for="record in checkinHistory"
@@ -276,7 +278,7 @@
 
       <!-- 操作按钮 -->
       <div class="result-actions">
-        <button @click="resetForm" class="secondary-btn">重新打卡</button>
+        <button @click="resetForm" class="secondary-btn">重新记录</button>
         <button @click="goHome" class="primary-btn">返回首页</button>
       </div>
     </div>
@@ -286,7 +288,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { postCheckin, getCheckinSummary, getHealthTrends } from '../services/api';
+import { postCheckin, getCheckinSummary, getHealthTrends, checkTodayCheckin } from '../services/api';
 
 // 类型定义
 interface HealthTrend {
@@ -319,7 +321,7 @@ const analysisResult = ref<AnalysisResult | null>(null);
 const checkinHistory = ref<HealthTrend[]>([]);
 const chartCanvas = ref<HTMLCanvasElement>();
 
-// 打卡数据
+// 记录数据
 const checkinData = ref({
   sleepHours: 8,
   sleepTime: '23:00',
@@ -403,14 +405,14 @@ const submitCheckin = async () => {
       showSuccessModal.value = true;
     } else {
       const msg = response.message || '未知错误';
-      if (msg.includes('今日已打卡')) {
+      if (msg.includes('今日已记录')) {
         showAlreadyChecked.value = true;
       } else {
-        alert('打卡失败：' + msg);
+        alert('记录失败：' + msg);
       }
     }
   } catch (error) {
-    console.error('提交打卡失败:', error);
+    console.error('提交记录失败:', error);
     alert('提交失败，请检查网络连接后重试');
   } finally {
     loading.value = false;
@@ -425,6 +427,18 @@ const closeAlreadyChecked = () => {
   showAlreadyChecked.value = false;
   // 跳转仪表盘，让用户查看数据
   router.push('/dashboard-metrics');
+};
+
+// 检查今日是否已记录
+const checkIfAlreadyCheckedIn = async () => {
+  try {
+    const result = await checkTodayCheckin();
+    if (result.hasCheckedIn) {
+      showAlreadyChecked.value = true;
+    }
+  } catch (error) {
+    console.error('检查记录状态失败:', error);
+  }
 };
 
 const continueCheckin = () => {
@@ -524,7 +538,7 @@ const drawHealthChart = async () => {
       ctx.fillStyle = '#6c757d';
       ctx.font = '14px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('暂无数据，请先进行打卡', 200, 100);
+      ctx.fillText('暂无数据，请先进行记录', 200, 100);
     }
   } catch (error) {
     console.error('绘制图表失败:', error);
@@ -545,7 +559,7 @@ const loadCheckinHistory = async () => {
     checkinHistory.value = rows.map((r: any) => {
       const date = r.date || r.checkin_date || r.checkinDate || '';
       const score = r.healthScore ?? r.health_score;
-      const summary = r.summary ?? (score !== undefined ? `健康分 ${score}` : '已打卡');
+      const summary = r.summary ?? (score !== undefined ? `健康分 ${score}` : '已记录');
       return { date, healthScore: score, summary } as HealthTrend;
     });
   } catch (err) {
@@ -557,7 +571,7 @@ const loadCheckinHistory = async () => {
       checkinHistory.value = list.slice(-7).map((r: any) => ({
         date: r.date || '',
         healthScore: r.healthScore ?? r.health_score,
-        summary: r.summary ?? '已打卡'
+        summary: r.summary ?? '已记录'
       }));
     } catch (e) {
       console.error('加载历史记录失败:', e);
@@ -566,9 +580,12 @@ const loadCheckinHistory = async () => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // 检查今日是否已记录
+  await checkIfAlreadyCheckedIn();
+  
   loadCheckinHistory();
-  // 引用一次以消除“未使用”警告，存在画布时绘制
+  // 引用一次以消除"未使用"警告，存在画布时绘制
   if (chartCanvas.value) {
     drawHealthChart();
   }
@@ -586,8 +603,8 @@ watch(showResult, async (v) => {
 <style scoped>
 .checkin-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
+  background: linear-gradient(135deg, #ffd89b 0%, #ffebcd 100%);
+  padding: 80px 20px 20px 20px; /* 增加顶部padding给按钮留空间 */
   position: relative;
 }
 
@@ -602,39 +619,87 @@ watch(showResult, async (v) => {
   pointer-events: none;
 }
 
-/* 返回首页按钮 */
-.back-to-home {
-  position: absolute;
-  top: 20px;
+/* 左上角返回按钮 */
+.back-top-left {
+  position: fixed;
+  top: 10px;
   left: 20px;
-  z-index: 100;
+  z-index: 9999;
 }
 
+/* 按钮样式 - 黑色风格 */
 .back-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 20px;
-  border-radius: 25px;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 24px;
+  border-radius: 30px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(15px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  position: relative;
+  overflow: hidden;
+}
+
+.back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
 }
 
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px) translateX(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.back-btn:active {
+  transform: translateY(0) translateX(0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.back-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.back-btn:hover .back-icon {
+  transform: translateX(-3px);
+}
+
+.back-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 /* 页面头部 */
 .page-header {
   text-align: center;
   margin-bottom: 40px;
-  padding-top: 60px;
+  padding-top: 0; /* 移除padding-top，因为容器已有80px的padding */
   position: relative;
   z-index: 1;
 }
@@ -663,7 +728,7 @@ watch(showResult, async (v) => {
 }
 
 .page-title {
-  color: white;
+  color: #000;
   font-size: 2.8rem;
   margin: 0 0 15px 0;
   font-weight: 700;
@@ -689,14 +754,14 @@ watch(showResult, async (v) => {
 }
 
 .page-subtitle {
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(0, 0, 0, 0.7);
   font-size: 1.2rem;
   margin: 0;
   font-weight: 400;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* 打卡表单卡片 */
+/* 记录表单卡片 */
 .checkin-form-card {
   background: rgba(255, 255, 255, 0.98);
   border-radius: 25px;
@@ -1229,7 +1294,7 @@ watch(showResult, async (v) => {
   align-items: center;
 }
 
-/* 已打卡样式2 */
+/* 已记录样式2 */
 .checked-modal-overlay {
   position: fixed; inset: 0;
   background: rgba(17, 24, 39, 0.4);
@@ -1258,6 +1323,11 @@ watch(showResult, async (v) => {
 .checked-message {
   font-size: 14px;
   color: #475467;
+  margin-bottom: 8px;
+}
+.checked-sub-message {
+  font-size: 13px;
+  color: #98A2B3;
   margin-bottom: 16px;
 }
 .checked-actions {
@@ -1528,6 +1598,9 @@ watch(showResult, async (v) => {
 
 /* 移动端：自动回到单列 */
 @media (max-width: 768px) {
+  .checkin-container {
+    padding: 80px 15px 15px 15px; /* 保持顶部padding给按钮留空间 */
+  }
   .checkin-main {
     grid-template-columns: 1fr;
   }
