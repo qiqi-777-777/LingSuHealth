@@ -13,6 +13,12 @@
         <result column="exercise_minutes" property="exerciseMinutes" jdbcType="INTEGER"/>
         <result column="diet_notes" property="dietNotes" jdbcType="VARCHAR"/>
         <result column="followed_plan" property="followedPlan" jdbcType="BOOLEAN"/>
+        <result column="health_score" property="healthScore" jdbcType="INTEGER"/>
+        <result column="analysis_summary" property="analysisSummary" jdbcType="VARCHAR"/>
+        <result column="analysis_suggestions" property="analysisSuggestions" jdbcType="VARCHAR"/>
+        <result column="analysis_risks" property="analysisRisks" jdbcType="VARCHAR"/>
+        <result column="analysis_tomorrow_plan" property="analysisTomorrowPlan" jdbcType="VARCHAR"/>
+        <result column="analysis_tomorrow_tasks" property="analysisTomorrowTasks" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
     </resultMap>
@@ -21,7 +27,7 @@
         SELECT * FROM health_checkins 
         WHERE user_id = #{userId} 
         AND checkin_date >= #{startDate}
-        ORDER BY checkin_date DESC
+        ORDER BY checkin_date DESC, created_at DESC
     </select>
 
     <select id="getConsecutiveDays" resultType="java.lang.Integer">

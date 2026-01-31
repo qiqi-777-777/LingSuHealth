@@ -1,17 +1,25 @@
 package com.lingsu.health.controller;
 
-import com.lingsu.health.dto.Dtos.AssessmentReport;
+import com.lingsu.health.dto.Dtos.FusionAssessmentReport;
 import com.lingsu.health.entity.AssessmentRecord;
+import com.lingsu.health.entity.HealthCheckin;
 import com.lingsu.health.entity.User;
 import com.lingsu.health.mapper.AssessmentRecordMapper;
+import com.lingsu.health.mapper.HealthCheckinMapper;
 import com.lingsu.health.mapper.UserMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,18 +29,21 @@ import java.util.Map;
 public class AssessmentController {
 
     private final AssessmentRecordMapper assessmentRecordMapper;
+    private final HealthCheckinMapper healthCheckinMapper;
     private final UserMapper userMapper;
 
     @PostMapping("/report")
-    public AssessmentReport generateReport(@RequestBody Map<String, Object> requestData,
+    public FusionAssessmentReport generateReport(@RequestBody Map<String, Object> requestData,
                                            HttpServletRequest request) {
-        AssessmentReport report = new AssessmentReport();
+        FusionAssessmentReport report = new FusionAssessmentReport();
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> answers = (List<Map<String, Object>>) requestData.get("answers");
         if (answers == null || answers.isEmpty()) {
             report.constitution = "平和质";
             report.summary = "未提供足够的信息进行体质分析，建议完成完整的体质测评。";
+            report.riskTips = List.of("问卷信息不足，建议完成完整测评");
+            report.portrait = buildPortrait("平和质", List.of(), null);
             return report;
         }
 
@@ -56,6 +67,10 @@ public class AssessmentController {
         String constitution = analyzeConstitution(answers);
         report.constitution = constitution;
         report.summary = generateSummary(constitution, answers);
+        List<HealthCheckin> recentCheckins = getRecentCheckins(userId);
+        DailyStats stats = analyzeDailyStats(recentCheckins);
+        report.portrait = buildPortrait(constitution, recentCheckins, stats);
+        report.riskTips = buildRiskTips(constitution, stats, recentCheckins);
         return report;
     }
 
@@ -103,69 +118,399 @@ public class AssessmentController {
     }
     
     private void calculateConstitutionScore(int questionIndex, int answerIndex, int[] scores) {
-        // 简化的体质评分逻辑
         switch (questionIndex) {
-            case 0: // 体型
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[4] += 2; // 痰湿质
-                else if (answerIndex == 2) scores[1] += 2; // 气虚质
-                else if (answerIndex == 3) scores[0] += 1; // 平和质
+            case 0:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[1] += 2;
+                else if (answerIndex == 2) scores[4] += 2;
+                else if (answerIndex == 3) scores[0] += 1;
                 break;
-            case 1: // 面色
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[4] += 1; // 痰湿质
-                else if (answerIndex == 2) scores[1] += 1; // 气虚质
-                else if (answerIndex == 3) scores[6] += 1; // 血瘀质
+            case 1:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[7] += 1;
+                else if (answerIndex == 2) scores[3] += 2;
+                else if (answerIndex == 3) scores[1] += 1;
                 break;
-            case 2: // 舌质
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[1] += 2; // 气虚质
-                else if (answerIndex == 2) scores[3] += 2; // 阴虚质
-                else if (answerIndex == 3) scores[6] += 1; // 血瘀质
+            case 2:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[1] += 1;
+                else if (answerIndex == 2) scores[1] += 2;
+                else if (answerIndex == 3) scores[4] += 1;
                 break;
-            case 3: // 舌苔
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[4] += 2; // 痰湿质
-                else if (answerIndex == 2) scores[3] += 1; // 阴虚质
-                else if (answerIndex == 3) scores[5] += 2; // 湿热质
+            case 3:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[4] += 1;
+                else if (answerIndex == 2) scores[5] += 1;
+                else if (answerIndex == 3) scores[7] += 1;
                 break;
-            case 4: // 口味偏好
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[3] += 1; // 阴虚质
-                else if (answerIndex == 2) scores[4] += 1; // 痰湿质
-                else if (answerIndex == 3) scores[4] += 1; // 痰湿质
+            case 4:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[5] += 1;
+                else if (answerIndex == 2) scores[7] += 1;
+                else if (answerIndex == 3) scores[4] += 1;
                 break;
-            case 5: // 体温感受
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[2] += 2; // 阳虚质
-                else if (answerIndex == 2) scores[3] += 2; // 阴虚质
-                else if (answerIndex == 3) scores[7] += 1; // 气郁质
+            case 5:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[1] += 1;
+                else if (answerIndex == 2) scores[1] += 2;
                 break;
-            case 6: // 睡眠质量
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[3] += 1; // 阴虚质
-                else if (answerIndex == 2) scores[7] += 2; // 气郁质
-                else if (answerIndex == 3) scores[3] += 2; // 阴虚质
+            case 6:
+                if (answerIndex == 0) scores[0] += 2;
+                else if (answerIndex == 1) scores[7] += 1;
+                else if (answerIndex == 2) scores[7] += 2;
+                else if (answerIndex == 3) scores[7] += 2;
                 break;
-            case 7: // 大便情况
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[3] += 1; // 阴虚质
-                else if (answerIndex == 2) scores[4] += 1; // 痰湿质
-                else if (answerIndex == 3) scores[5] += 2; // 湿热质
+            case 7:
+                if (answerIndex == 0) scores[6] += 1;
+                else if (answerIndex == 1) scores[1] += 1;
+                else if (answerIndex == 2) scores[2] += 1;
+                else if (answerIndex == 3) scores[3] += 1;
+                else if (answerIndex == 4) scores[0] += 1;
                 break;
-            case 8: // 小便情况
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[5] += 2; // 湿热质
-                else if (answerIndex == 2) scores[2] += 1; // 阳虚质
-                else if (answerIndex == 3) scores[3] += 1; // 阴虚质
-                break;
-            case 9: // 精力状态
-                if (answerIndex == 0) scores[0] += 2; // 平和质
-                else if (answerIndex == 1) scores[1] += 2; // 气虚质
-                else if (answerIndex == 2) scores[1] += 2; // 气虚质
-                else if (answerIndex == 3) scores[4] += 1; // 痰湿质
+            case 8:
+            case 9:
                 break;
         }
+    }
+
+    private List<HealthCheckin> getRecentCheckins(Long userId) {
+        if (userId == null) {
+            return List.of();
+        }
+        LocalDate startDate = LocalDate.now().minusDays(6);
+        return healthCheckinMapper.getRecentCheckins(userId, startDate);
+    }
+
+    private DailyStats analyzeDailyStats(List<HealthCheckin> recentCheckins) {
+        DailyStats stats = new DailyStats();
+        if (recentCheckins == null || recentCheckins.isEmpty()) {
+            return stats;
+        }
+        double sleepSum = 0;
+        int sleepCount = 0;
+        int sleepTimeCount = 0;
+        int lateCount = 0;
+        double moodSum = 0;
+        int moodCount = 0;
+        int moodLowDays = 0;
+        int sleepShortDays = 0;
+        int sleepLongDays = 0;
+        Map<String, Integer> dietCounts = new HashMap<>();
+        LocalTime lateThreshold = LocalTime.of(23, 0);
+        LocalTime earlyThreshold = LocalTime.of(6, 0);
+
+        for (HealthCheckin checkin : recentCheckins) {
+            if (checkin.getSleepHours() != null) {
+                double sleepHours = checkin.getSleepHours().doubleValue();
+                sleepSum += sleepHours;
+                sleepCount++;
+                if (sleepHours < 6.5) {
+                    sleepShortDays++;
+                } else if (sleepHours > 9) {
+                    sleepLongDays++;
+                }
+            }
+            if (checkin.getSleepTime() != null) {
+                sleepTimeCount++;
+                if (checkin.getSleepTime().isAfter(lateThreshold) || checkin.getSleepTime().isBefore(earlyThreshold)) {
+                    lateCount++;
+                }
+            }
+            if (checkin.getMood() != null) {
+                moodSum += checkin.getMood();
+                moodCount++;
+                if (checkin.getMood() <= 1) {
+                    moodLowDays++;
+                }
+            }
+            if (checkin.getDietNotes() != null && !checkin.getDietNotes().isEmpty()) {
+                String note = checkin.getDietNotes();
+                String label = classifyDietLabel(note);
+                if (label != null) {
+                    dietCounts.put(label, dietCounts.getOrDefault(label, 0) + 1);
+                }
+            }
+        }
+
+        if (sleepCount > 0) {
+            stats.sleepAvg = roundOneDecimal(sleepSum / sleepCount);
+        }
+        if (sleepTimeCount > 0) {
+            stats.sleepLateRate = roundTwoDecimal((double) lateCount / sleepTimeCount);
+        }
+        if (moodCount > 0) {
+            stats.moodAvg = roundOneDecimal(moodSum / moodCount);
+        }
+        stats.dietLabel = pickTopLabel(dietCounts);
+        stats.checkinCount = recentCheckins.size();
+        stats.sleepLateDays = lateCount;
+        stats.sleepShortDays = sleepShortDays;
+        stats.sleepLongDays = sleepLongDays;
+        stats.moodLowDays = moodLowDays;
+        return stats;
+    }
+
+    private Map<String, Object> buildPortrait(String constitution, List<HealthCheckin> recentCheckins, DailyStats stats) {
+        Map<String, Object> portrait = new HashMap<>();
+        portrait.put("constitution", constitution);
+        int checkinCount = recentCheckins != null ? recentCheckins.size() : 0;
+        portrait.put("checkinCount", checkinCount);
+        portrait.put("daysWindow", 7);
+        if (stats != null) {
+            portrait.put("sleepAvg", stats.sleepAvg);
+            portrait.put("sleepLateRate", stats.sleepLateRate);
+            portrait.put("moodAvg", stats.moodAvg);
+            portrait.put("dietLabel", stats.dietLabel);
+            portrait.put("sleepShortDays", stats.sleepShortDays);
+            portrait.put("sleepLongDays", stats.sleepLongDays);
+            portrait.put("sleepLateDays", stats.sleepLateDays);
+            portrait.put("moodLowDays", stats.moodLowDays);
+            portrait.put("sleepStatus", buildSleepStatus(stats.sleepAvg));
+            portrait.put("moodStatus", buildMoodStatus(stats.moodAvg));
+            portrait.put("dietStatus", buildDietStatus(stats.dietLabel));
+        }
+        Map<String, Integer> symptomSummary = buildSymptomSummary(recentCheckins);
+        portrait.put("symptoms", symptomSummary);
+        portrait.put("topSymptoms", buildTopSymptoms(symptomSummary, 3));
+        return portrait;
+    }
+
+    private List<String> buildRiskTips(String constitution, DailyStats stats, List<HealthCheckin> recentCheckins) {
+        List<String> tips = new ArrayList<>();
+        if (recentCheckins == null || recentCheckins.isEmpty()) {
+            tips.add("近期暂无打卡数据，建议完成每日打卡以获得更准确的风险提示。");
+        }
+        if (stats != null) {
+            if (stats.sleepAvg != null && stats.sleepAvg < 6.5) {
+                addTip(tips, "近7天平均睡眠不足，建议保证每日7-8小时睡眠。");
+            } else if (stats.sleepAvg != null && stats.sleepAvg > 9) {
+                addTip(tips, "近7天平均睡眠偏长，建议适当调整作息提升日间精神。");
+            }
+            if (stats.sleepLateRate != null && stats.sleepLateRate >= 0.4) {
+                addTip(tips, "入睡时间偏晚，建议尽量在23点前入睡。");
+            }
+            if (stats.moodAvg != null && stats.moodAvg <= 1.5) {
+                addTip(tips, "情绪评分偏低，建议安排放松活动与规律作息。");
+            }
+            if (stats.dietLabel != null) {
+                switch (stats.dietLabel) {
+                    case "偏油":
+                        addTip(tips, "饮食偏油，建议减少油炸与高脂食物。");
+                        break;
+                    case "偏甜":
+                        addTip(tips, "饮食偏甜，建议减少含糖饮料与甜品。");
+                        break;
+                    case "偏辣":
+                        addTip(tips, "饮食偏辣，建议适当降低辛辣刺激。");
+                        break;
+                    case "偏咸":
+                        addTip(tips, "饮食偏咸，建议控制盐分摄入。");
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        Map<String, Integer> symptomSummary = buildSymptomSummary(recentCheckins);
+        String topSymptom = pickTopSymptom(symptomSummary);
+        if (topSymptom != null) {
+            addTip(tips, "近期多次出现“" + topSymptom + "”症状，建议关注并适当调整作息与饮食。");
+        }
+        String constitutionTip = buildConstitutionTip(constitution);
+        if (constitutionTip != null && !constitutionTip.isEmpty()) {
+            addTip(tips, constitutionTip);
+        }
+        if (tips.isEmpty()) {
+            tips.add("近期健康状况平稳，建议继续保持规律作息与均衡饮食。");
+        }
+        return tips;
+    }
+
+    private String buildConstitutionTip(String constitution) {
+        switch (constitution) {
+            case "气虚质":
+                return "气虚体质建议循序渐进运动，避免过度劳累。";
+            case "阳虚质":
+                return "阳虚体质注意保暖，少吃生冷食物。";
+            case "阴虚质":
+                return "阴虚体质注意滋阴润燥，避免熬夜。";
+            case "痰湿质":
+                return "痰湿体质建议控制油腻甜食，增加运动。";
+            case "湿热质":
+                return "湿热体质建议清淡饮食，避免辛辣油腻。";
+            case "血瘀质":
+                return "血瘀体质建议适量有氧运动促进循环。";
+            case "气郁质":
+                return "气郁体质建议保持心情舒畅，多做舒缓运动。";
+            case "特禀质":
+                return "特禀体质注意远离过敏原，规律作息。";
+            default:
+                return "平和体质建议继续保持良好生活习惯。";
+        }
+    }
+
+    private Map<String, Integer> buildSymptomSummary(List<HealthCheckin> recentCheckins) {
+        Map<String, Integer> counts = new HashMap<>();
+        if (recentCheckins == null || recentCheckins.isEmpty()) {
+            return counts;
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        for (HealthCheckin checkin : recentCheckins) {
+            if (checkin.getSymptoms() == null || checkin.getSymptoms().isEmpty()) {
+                continue;
+            }
+            try {
+                List<String> symptoms = mapper.readValue(checkin.getSymptoms(), new TypeReference<List<String>>() {});
+                for (String symptom : symptoms) {
+                    if (symptom == null || symptom.isEmpty()) {
+                        continue;
+                    }
+                    counts.put(symptom, counts.getOrDefault(symptom, 0) + 1);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return counts;
+    }
+
+    private String classifyDietLabel(String note) {
+        String text = note.trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        if (text.contains("清淡") || text.contains("少油") || text.contains("低脂") || text.contains("少盐")) {
+            return "清淡";
+        }
+        if (text.contains("油腻") || text.contains("油炸") || text.contains("肥") || text.contains("油")) {
+            return "偏油";
+        }
+        if (text.contains("甜") || text.contains("糖")) {
+            return "偏甜";
+        }
+        if (text.contains("辣") || text.contains("辛")) {
+            return "偏辣";
+        }
+        if (text.contains("咸") || text.contains("盐")) {
+            return "偏咸";
+        }
+        return "其他";
+    }
+
+    private String pickTopLabel(Map<String, Integer> counts) {
+        if (counts == null || counts.isEmpty()) {
+            return null;
+        }
+        String topLabel = null;
+        int maxCount = 0;
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > maxCount) {
+                maxCount = entry.getValue();
+                topLabel = entry.getKey();
+            }
+        }
+        return topLabel;
+    }
+
+    private List<Map<String, Object>> buildTopSymptoms(Map<String, Integer> counts, int limit) {
+        if (counts == null || counts.isEmpty()) {
+            return List.of();
+        }
+        List<Map.Entry<String, Integer>> entries = new ArrayList<>(counts.entrySet());
+        entries.sort(Comparator.comparing(Map.Entry<String, Integer>::getValue).reversed());
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (int i = 0; i < entries.size() && i < limit; i++) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("symptom", entries.get(i).getKey());
+            item.put("count", entries.get(i).getValue());
+            result.add(item);
+        }
+        return result;
+    }
+
+    private String pickTopSymptom(Map<String, Integer> counts) {
+        if (counts == null || counts.isEmpty()) {
+            return null;
+        }
+        String top = null;
+        int max = 0;
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > max) {
+                max = entry.getValue();
+                top = entry.getKey();
+            }
+        }
+        if (max >= 2) {
+            return top;
+        }
+        return null;
+    }
+
+    private String buildSleepStatus(Double sleepAvg) {
+        if (sleepAvg == null) {
+            return "未知";
+        }
+        if (sleepAvg < 6.5) {
+            return "不足";
+        }
+        if (sleepAvg > 9) {
+            return "偏长";
+        }
+        return "正常";
+    }
+
+    private String buildMoodStatus(Double moodAvg) {
+        if (moodAvg == null) {
+            return "未知";
+        }
+        if (moodAvg <= 1.5) {
+            return "偏低";
+        }
+        if (moodAvg >= 3) {
+            return "良好";
+        }
+        return "一般";
+    }
+
+    private String buildDietStatus(String dietLabel) {
+        if (dietLabel == null) {
+            return "无记录";
+        }
+        if ("清淡".equals(dietLabel)) {
+            return "清淡";
+        }
+        if ("其他".equals(dietLabel)) {
+            return "其他";
+        }
+        return "偏重";
+    }
+
+    private void addTip(List<String> tips, String tip) {
+        if (tip == null || tip.isEmpty()) {
+            return;
+        }
+        if (!tips.contains(tip)) {
+            tips.add(tip);
+        }
+    }
+
+    private Double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
+    }
+
+    private Double roundTwoDecimal(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    private static class DailyStats {
+        private Double sleepAvg;
+        private Double sleepLateRate;
+        private Double moodAvg;
+        private String dietLabel;
+        private Integer checkinCount;
+        private Integer sleepLateDays;
+        private Integer sleepShortDays;
+        private Integer sleepLongDays;
+        private Integer moodLowDays;
     }
     
     private String generateSummary(String constitution, List<Map<String, Object>> answers) {

@@ -124,9 +124,20 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getSeasonTips, getCurrentSeasonTip } from '../services/api';
 
+defineOptions({ name: 'SeasonView' });
+
 const router = useRouter();
-const currentTip = ref<any>(null);
-const selectedTip = ref<any>(null);
+interface SeasonTip {
+  season: string;
+  suggestion: string;
+  principle: string;
+  detailSuggestion: string;
+  recommendedFoods: string;
+  taboos: string;
+}
+
+const currentTip = ref<SeasonTip | null>(null);
+const selectedTip = ref<SeasonTip | null>(null);
 const selectedSeason = ref('立冬');
 const loading = ref(false);
 
@@ -151,8 +162,10 @@ const loadCurrentSeason = async () => {
   try {
     loading.value = true;
     currentTip.value = await getCurrentSeasonTip();
-    selectedSeason.value = currentTip.value.season;
-    selectedTip.value = currentTip.value;
+    if (currentTip.value) {
+      selectedSeason.value = currentTip.value.season;
+      selectedTip.value = currentTip.value;
+    }
   } catch (error) {
     console.error('加载当前节气失败:', error);
   } finally {

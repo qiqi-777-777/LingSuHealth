@@ -74,15 +74,24 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuth } from '../composables/useAuth';
+
+defineOptions({ name: 'LoginView' });
 
 const router = useRouter();
+const { login: setAuth } = useAuth();
 const username = ref('');
 const password = ref('');
 const msg = ref('');
 const loading = ref(false);
 const isSuccess = ref(false);
 
-async function post(url: string, body: any) {
+type AuthRequest = {
+  username: string;
+  password: string;
+};
+
+async function post(url: string, body: AuthRequest) {
   const res = await fetch(`/api/auth/${url}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -109,9 +118,8 @@ async function onLogin() {
       password: password.value 
     });
     
-    // 保存登录状态
-    localStorage.setItem('token', 'logged-in');
-    localStorage.setItem('username', username.value);
+    // 使用 useAuth 保存登录状态
+    setAuth(username.value);
     
     msg.value = result || '登录成功';
     isSuccess.value = true;
@@ -121,8 +129,8 @@ async function onLogin() {
       router.push('/dashboard');
     }, 1000);
     
-  } catch (e: any) {
-    msg.value = e.message;
+  } catch (e) {
+    msg.value = e instanceof Error ? e.message : '登录失败';
     isSuccess.value = false;
   } finally {
     loading.value = false;
@@ -146,8 +154,8 @@ async function onRegister() {
     });
     msg.value = result || '注册成功，请登录';
     isSuccess.value = true;
-  } catch (e: any) {
-    msg.value = e.message;
+  } catch (e) {
+    msg.value = e instanceof Error ? e.message : '注册失败';
     isSuccess.value = false;
   } finally {
     loading.value = false;

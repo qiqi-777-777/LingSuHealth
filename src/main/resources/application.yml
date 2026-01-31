@@ -30,6 +30,14 @@ deepseek:
     key: ${DEEPSEEK_API_KEY:sk-b0b4f0292f8848c483ec8e1a847c6766}
     url: ${DEEPSEEK_API_URL:https://api.deepseek.com/v1/chat/completions}
 
+# 阿里云短信配置
+aliyun:
+  sms:
+    access-key-id: ${ALIYUN_SMS_ACCESS_KEY_ID:}
+    access-key-secret: ${ALIYUN_SMS_ACCESS_KEY_SECRET:}
+    sign-name: ${ALIYUN_SMS_SIGN_NAME:灵素养生}
+    template-code: ${ALIYUN_SMS_TEMPLATE_CODE:}
+
 management:
   endpoints:
     web:

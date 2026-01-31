@@ -9,6 +9,13 @@ public class Dtos {
         public String summary;      // 中西结合简述
     }
 
+    public static class FusionAssessmentReport {
+        public String constitution;
+        public String summary;
+        public java.util.List<String> riskTips;
+        public java.util.Map<String, Object> portrait;
+    }
+
     public static class PlanItem {
         public String category;     // 分类（饮食建议/运动方案等）
         public String title;        // 计划项名称
@@ -21,7 +28,7 @@ public class Dtos {
         public int weeklyGoal;      // 周目标
         public int completionRate;  // 完成率
         public String trend;        // 趋势描述
-        public List<Map<String, String>> history; // 历史记录
+        public List<Map<String, Object>> history; // 历史记录
         
         // Getter和Setter方法
         public int getTotalCheckins() { return totalCheckins; }
@@ -39,8 +46,8 @@ public class Dtos {
         public String getTrend() { return trend; }
         public void setTrend(String trend) { this.trend = trend; }
         
-        public List<Map<String, String>> getHistory() { return history; }
-        public void setHistory(List<Map<String, String>> history) { this.history = history; }
+        public List<Map<String, Object>> getHistory() { return history; }
+        public void setHistory(List<Map<String, Object>> history) { this.history = history; }
     }
 
     public static class KnowledgeItemDto {

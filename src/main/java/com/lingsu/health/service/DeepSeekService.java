@@ -2,6 +2,7 @@ package com.lingsu.health.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lingsu.health.dto.Dtos.QAResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,8 +10,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +39,140 @@ public class DeepSeekService {
         }
         this.objectMapper = new ObjectMapper();
     }
+
+    /**
+     * 流式问答方法
+     */
+    public Flux<String> askQuestionWithContextStream(String question, Object historyValue) {
+        log.info("收到流式问题: {}", question);
+
+        if (question == null || question.trim().isEmpty()) {
+            return Flux.just("请输入您的问题，我会尽力为您解答。");
+        }
+
+        List<Map<String, String>> history = parseHistory(historyValue);
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", buildAssistantSystemPrompt()));
+        if (history != null && !history.isEmpty()) {
+            messages.addAll(history);
+        }
+        messages.add(Map.of("role", "user", "content", question));
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "deepseek-chat");
+        requestBody.put("messages", messages);
+        requestBody.put("max_tokens", 1200);
+        requestBody.put("temperature", 0.6);
+        requestBody.put("stream", true); // 开启流式模式
+
+        return webClient.post()
+            .uri(apiUrl)
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .bodyValue(requestBody)
+            .retrieve()
+            .bodyToFlux(String.class)
+            .flatMap(line -> {
+                // 处理SSE数据格式 "data: {...}"
+                if (line.startsWith("data: ")) {
+                    String data = line.substring(6).trim();
+                    if ("[DONE]".equals(data)) {
+                        return Mono.empty();
+                    }
+                    try {
+                        JsonNode jsonNode = objectMapper.readTree(data);
+                        JsonNode choices = jsonNode.get("choices");
+                        if (choices != null && choices.isArray() && choices.size() > 0) {
+                            JsonNode delta = choices.get(0).get("delta");
+                            if (delta != null && delta.has("content")) {
+                                return Mono.just(delta.get("content").asText());
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析SSE数据失败: {}", data, e);
+                    }
+                }
+                return Mono.empty();
+            });
+    }
     
+    public QAResponse askQuestionWithContext(String question, Object historyValue) {
+        try {
+            log.info("收到问题: {}", question);
+
+            if (question == null || question.trim().isEmpty()) {
+                QAResponse r = new QAResponse();
+                r.answer = "请输入您的问题，我会尽力为您解答。";
+                r.sources = List.of("系统提示");
+                return r;
+            }
+
+            List<Map<String, String>> history = parseHistory(historyValue);
+            List<Map<String, String>> messages = new ArrayList<>();
+            messages.add(Map.of("role", "system", "content", buildAssistantSystemPrompt()));
+            if (history != null && !history.isEmpty()) {
+                messages.addAll(history);
+            }
+            messages.add(Map.of("role", "user", "content", question));
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "deepseek-chat");
+            requestBody.put("messages", messages);
+            requestBody.put("max_tokens", 1200);
+            requestBody.put("temperature", 0.6);
+            requestBody.put("stream", false); // 明确指定非流式模式
+
+            log.info("准备调用DeepSeek API，URL: {}", apiUrl);
+            log.debug("请求体: {}", requestBody);
+
+            Mono<String> response = webClient.post()
+                .uri(apiUrl)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class);
+
+            String responseBody = response.block(java.time.Duration.ofSeconds(60)); // 设置60秒超时
+            log.info("DeepSeek API 响应长度: {}", responseBody != null ? responseBody.length() : 0);
+            
+            if (responseBody == null || responseBody.isEmpty()) {
+                log.warn("DeepSeek API 返回空响应");
+                QAResponse fallback = new QAResponse();
+                fallback.answer = "抱歉，AI服务暂时无响应，请稍后再试。";
+                fallback.sources = defaultSources();
+                return fallback;
+            }
+            
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+            JsonNode choices = jsonNode.get("choices");
+            if (choices != null && choices.isArray() && choices.size() > 0) {
+                JsonNode message = choices.get(0).get("message");
+                if (message != null) {
+                    String answer = message.get("content").asText();
+                    QAResponse r = new QAResponse();
+                    r.answer = stripSourcesSection(answer);
+                    r.sources = extractSources(answer);
+                    if (r.sources == null || r.sources.isEmpty()) {
+                        r.sources = defaultSources();
+                    }
+                    return r;
+                }
+            }
+
+            QAResponse fallback = new QAResponse();
+            fallback.answer = "抱歉，我暂时无法回答您的问题，请稍后再试。";
+            fallback.sources = defaultSources();
+            return fallback;
+        } catch (Exception e) {
+            log.error("调用DeepSeek API时发生错误: {}", e.getMessage(), e);
+            QAResponse r = new QAResponse();
+            r.answer = "抱歉，服务暂时不可用。建议您保持良好的生活习惯，如有持续不适请咨询专业医师。";
+            r.sources = defaultSources();
+            return r;
+        }
+    }
+
     public String askQuestion(String question) {
         try {
             log.info("收到问题: {}", question);
@@ -158,6 +294,83 @@ public class DeepSeekService {
             log.error("健康数据分析时发生错误: {}", e.getMessage(), e);
             return getDefaultHealthAnalysis(healthData);
         }
+    }
+
+    private List<Map<String, String>> parseHistory(Object historyValue) {
+        if (!(historyValue instanceof List<?>)) {
+            return List.of();
+        }
+        List<?> rawList = (List<?>) historyValue;
+        List<Map<String, String>> history = new ArrayList<>();
+        for (Object item : rawList) {
+            if (!(item instanceof Map<?, ?>)) {
+                continue;
+            }
+            Map<?, ?> map = (Map<?, ?>) item;
+            Object roleObj = map.get("role");
+            Object contentObj = map.get("content");
+            if (roleObj == null || contentObj == null) {
+                continue;
+            }
+            String role = roleObj.toString();
+            String content = contentObj.toString();
+            if (content.trim().isEmpty()) {
+                continue;
+            }
+            if (!role.equals("user") && !role.equals("assistant")) {
+                continue;
+            }
+            history.add(Map.of("role", role, "content", content));
+        }
+        return history;
+    }
+
+    private String buildAssistantSystemPrompt() {
+        return "你是一个专业的中医健康咨询助手，面向普通用户提供通俗、可信、可执行的建议。" +
+            "你需要进行多轮对话，如果信息不足，请优先提出最多3个关键问题再给出方案。" +
+            "回答必须包含【问题理解】【可解释性】【可执行方案】【注意事项】【下一步提问】【参考来源】六个部分。" +
+            "【可执行方案】请按晨/午/晚给出3-5条可完成的具体动作。" +
+            "【可解释性】说明建议与用户症状、体质、作息或季节的对应关系。" +
+            "【参考来源】只能从以下来源中选择并列出：中医基础理论、中国居民膳食指南(2022)、中国睡眠研究会睡眠卫生建议、国家卫生健康委员会健康科普、中华中医药学会科普资料、WHO健康生活方式建议。" +
+            "如果无法判断体质或关键信息缺失，请在【下一步提问】给出需要补充的问题；如信息已足够则写“无”。";
+    }
+
+    private List<String> extractSources(String answer) {
+        int start = answer.indexOf("【参考来源】");
+        if (start < 0) {
+            return List.of();
+        }
+        String section = answer.substring(start + 6).trim();
+        String[] lines = section.split("\\n");
+        List<String> sources = new ArrayList<>();
+        for (String line : lines) {
+            String cleaned = line.trim();
+            if (cleaned.isEmpty()) {
+                continue;
+            }
+            cleaned = cleaned.replaceFirst("^[0-9]+[\\.|、)]\\s*", "");
+            cleaned = cleaned.replaceFirst("^[-•]\\s*", "");
+            if (!cleaned.isEmpty()) {
+                sources.add(cleaned);
+            }
+        }
+        return sources;
+    }
+
+    private String stripSourcesSection(String answer) {
+        int start = answer.indexOf("【参考来源】");
+        if (start < 0) {
+            return answer;
+        }
+        return answer.substring(0, start).trim();
+    }
+
+    private List<String> defaultSources() {
+        return List.of(
+            "中医基础理论",
+            "中国居民膳食指南(2022)",
+            "国家卫生健康委员会健康科普"
+        );
     }
     
     /**

@@ -9,12 +9,15 @@ import com.lingsu.health.entity.User;
 import com.lingsu.health.mapper.AssessmentRecordMapper;
 import com.lingsu.health.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlanService {
@@ -22,6 +25,8 @@ public class PlanService {
     private final AssessmentRecordMapper assessmentRecordMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final DeepSeekService deepSeekService;
+    private final com.lingsu.health.mapper.HealthCheckinMapper healthCheckinMapper;
 
     /**
      * 根据用户名获取个性化养生方案
@@ -323,6 +328,178 @@ public class PlanService {
         item.title = title;
         item.detail = detail;
         return item;
+    }
+    
+    /**
+     * AI动态生成个性化方案
+     */
+    public Map<String, Object> generateAIDynamicPlan(String username) {
+        try {
+            // 获取用户
+            User user = userMapper.selectOne(new QueryWrapper<User>().eq("username", username));
+            if (user == null) {
+                return Map.of(
+                    "success", false,
+                    "message", "用户不存在"
+                );
+            }
+
+            // 获取用户最近7天的打卡记录
+            List<com.lingsu.health.entity.HealthCheckin> recentCheckins = healthCheckinMapper.selectList(
+                new QueryWrapper<com.lingsu.health.entity.HealthCheckin>()
+                    .eq("user_id", user.getId())
+                    .orderByDesc("checkin_date")
+                    .last("LIMIT 7")
+            );
+
+            if (recentCheckins.isEmpty()) {
+                return Map.of(
+                    "success", false,
+                    "message", "暂无打卡记录，请先完成每日健康打卡"
+                );
+            }
+
+            // 获取最新的测评记录（用于体质信息）
+            AssessmentRecord latestRecord = assessmentRecordMapper.selectOne(
+                new QueryWrapper<AssessmentRecord>()
+                    .eq("user_id", user.getId())
+                    .orderByDesc("created_at")
+                    .last("LIMIT 1")
+            );
+
+            String constitution = latestRecord != null ? 
+                analyzeConstitutionFromRecord(latestRecord) : "未测评";
+
+            // 构建健康数据摘要
+            Map<String, Object> healthSummary = buildHealthSummary(recentCheckins, constitution);
+
+            // 调用AI生成个性化方案
+            String aiAnalysis = deepSeekService.analyzeHealthData(healthSummary);
+
+            // 解析AI返回的方案
+            List<PlanItem> items = parseAIAnalysisToItems(aiAnalysis);
+
+            return Map.of(
+                "success", true,
+                "constitution", constitution,
+                "aiAnalysis", aiAnalysis,
+                "items", items,
+                "checkinDays", recentCheckins.size()
+            );
+
+        } catch (Exception e) {
+            log.error("AI动态生成方案失败: {}", e.getMessage(), e);
+            return Map.of(
+                "success", false,
+                "message", "生成方案失败: " + e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * 构建健康数据摘要
+     */
+    private Map<String, Object> buildHealthSummary(
+        List<com.lingsu.health.entity.HealthCheckin> checkins,
+        String constitution
+    ) {
+        Map<String, Object> summary = new HashMap<>();
+        
+        // 最新一次打卡数据
+        com.lingsu.health.entity.HealthCheckin latest = checkins.get(0);
+        summary.put("sleepHours", latest.getSleepHours());
+        summary.put("sleepTime", latest.getSleepTime());
+        summary.put("symptoms", latest.getSymptoms());
+        summary.put("mood", latest.getMood());
+        summary.put("exerciseMinutes", latest.getExerciseMinutes());
+        summary.put("dietNotes", latest.getDietNotes());
+        summary.put("constitution", constitution);
+        
+        // 计算平均值
+        double avgSleep = checkins.stream()
+            .filter(c -> c.getSleepHours() != null)
+            .mapToDouble(c -> c.getSleepHours().doubleValue())
+            .average()
+            .orElse(0.0);
+        
+        double avgExercise = checkins.stream()
+            .filter(c -> c.getExerciseMinutes() != null)
+            .mapToDouble(c -> c.getExerciseMinutes().doubleValue())
+            .average()
+            .orElse(0.0);
+        
+        summary.put("avgSleepHours", String.format("%.1f", avgSleep));
+        summary.put("avgExerciseMinutes", String.format("%.0f", avgExercise));
+        summary.put("checkinDays", checkins.size());
+        
+        return summary;
+    }
+
+    /**
+     * 解析AI分析结果为方案项
+     */
+    private List<PlanItem> parseAIAnalysisToItems(String aiAnalysis) {
+        List<PlanItem> items = new ArrayList<>();
+        
+        try {
+            // 提取健康总结
+            String summary = extractSection(aiAnalysis, "【健康总结】", "【个性化建议】");
+            if (summary != null && !summary.trim().isEmpty()) {
+                items.add(createPlanItem("健康总结", "今日状态", summary.trim()));
+            }
+            
+            // 提取个性化建议
+            String suggestions = extractSection(aiAnalysis, "【个性化建议】", "【明日养生方案】");
+            if (suggestions != null) {
+                String[] lines = suggestions.split("\\n");
+                for (String line : lines) {
+                    line = line.trim();
+                    if (line.isEmpty() || !line.matches("^\\d+\\..*")) {
+                        continue;
+                    }
+                    
+                    // 解析建议项
+                    String[] parts = line.split("：", 2);
+                    if (parts.length == 2) {
+                        String category = parts[0].replaceFirst("^\\d+\\.\\s*", "").trim();
+                        String detail = parts[1].trim();
+                        items.add(createPlanItem("个性化建议", category, detail));
+                    }
+                }
+            }
+            
+            // 提取明日方案
+            String tomorrowPlan = extractSection(aiAnalysis, "【明日养生方案】", null);
+            if (tomorrowPlan != null && !tomorrowPlan.trim().isEmpty()) {
+                items.add(createPlanItem("明日方案", "养生计划", tomorrowPlan.trim()));
+            }
+            
+        } catch (Exception e) {
+            log.error("解析AI分析结果失败: {}", e.getMessage());
+            // 如果解析失败，返回原始分析文本
+            items.add(createPlanItem("AI分析", "健康建议", aiAnalysis));
+        }
+        
+        return items;
+    }
+
+    /**
+     * 提取文本中的特定章节
+     */
+    private String extractSection(String text, String startMarker, String endMarker) {
+        int start = text.indexOf(startMarker);
+        if (start < 0) {
+            return null;
+        }
+        
+        start += startMarker.length();
+        
+        int end = endMarker != null ? text.indexOf(endMarker, start) : text.length();
+        if (end < 0) {
+            end = text.length();
+        }
+        
+        return text.substring(start, end).trim();
     }
 }
 

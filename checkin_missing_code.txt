@@ -1,0 +1,612 @@
+// ========================================
+// 在 Checkin.vue 第 627 行之后添加以下代码
+// ========================================
+
+const router = useRouter();
+
+// 响应式数据
+const loading = ref(false);
+const showResult = ref(false);
+const showSuccessModal = ref(false);
+const showAlreadyChecked = ref(false);
+const showDetailModal = ref(false);
+const selectedRecord = ref<HealthTrend | null>(null);
+const analysisResult = ref<AnalysisResult | null>(null);
+const checkinHistory = ref<HealthTrend[]>([]);
+const chartCanvas = ref<HTMLCanvasElement>();
+const isEditMode = ref(false);
+const todayCheckinTime = ref('');
+
+// 新增：分步骤相关
+const currentStep = ref(1);
+const totalSteps = 3;
+
+// 新增：筛选相关
+const showFilter = ref(false);
+const filterStartDate = ref('');
+const filterEndDate = ref('');
+const filterMinScore = ref(0);
+const filterMaxScore = ref(100);
+const filterSymptoms = ref<string[]>([]);
+
+// 新增：导出相关
+const isExporting = ref(false);
+const showExportDialog = ref(false);
+const exportRange = ref<'current' | 'all'>('current');
+
+// 记录数据
+const checkinData = ref({
+  sleepHours: 8,
+  sleepTime: '23:00',
+  symptoms: [] as string[],
+  mood: 2,
+  exerciseMinutes: 30,
+  dietNotes: ''
+});
+
+// 选项数据
+const symptoms = [
+  '头痛', '疲劳', '失眠', '食欲不振', '腹胀', '便秘', '腹泻',
+  '口干', '怕冷', '怕热', '出汗多', '心悸', '无症状'
+];
+
+const moods = [
+  { emoji: '😢', name: '很差' },
+  { emoji: '😕', name: '一般' },
+  { emoji: '😊', name: '良好' },
+  { emoji: '😄', name: '很好' },
+  { emoji: '🤩', name: '极佳' }
+];
+
+// 计算属性
+const isFormValid = computed(() => {
+  return checkinData.value.sleepTime &&
+         checkinData.value.sleepHours > 0 &&
+         checkinData.value.mood !== null;
+});
+
+const isCurrentStepValid = computed(() => {
+  switch (currentStep.value) {
+    case 1:
+      return checkinData.value.sleepTime && checkinData.value.sleepHours > 0;
+    case 2:
+      return checkinData.value.mood !== null;
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+});
+
+const filteredHistory = computed(() => {
+  let filtered = [...checkinHistory.value];
+  
+  if (filterStartDate.value) {
+    filtered = filtered.filter(r => r.date >= filterStartDate.value);
+  }
+  if (filterEndDate.value) {
+    filtered = filtered.filter(r => r.date <= filterEndDate.value);
+  }
+  
+  filtered = filtered.filter(r => {
+    const score = r.healthScore ?? 0;
+    return score >= filterMinScore.value && score <= filterMaxScore.value;
+  });
+  
+  if (filterSymptoms.value.length > 0) {
+    filtered = filtered.filter(r => {
+      if (!r.symptoms || r.symptoms.length === 0) return false;
+      return filterSymptoms.value.some(s => r.symptoms?.includes(s));
+    });
+  }
+  
+  return filtered;
+});
+
+// 方法
+const goHome = () => {
+  router.push('/dashboard');
+};
+
+const getCurrentDate = () => {
+  return new Date().toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+  });
+};
+
+const formatTime = (date: Date) => {
+  return date.toLocaleString('zh-CN');
+};
+
+const toggleSymptom = (symptom: string) => {
+  const index = checkinData.value.symptoms.indexOf(symptom);
+  if (index > -1) {
+    checkinData.value.symptoms.splice(index, 1);
+  } else {
+    checkinData.value.symptoms.push(symptom);
+  }
+};
+
+const adjustExercise = (amount: number) => {
+  const newValue = checkinData.value.exerciseMinutes + amount;
+  if (newValue >= 0 && newValue <= 300) {
+    checkinData.value.exerciseMinutes = newValue;
+  }
+};
+
+const goToStep = (step: number) => {
+  if (step < currentStep.value) {
+    currentStep.value = step;
+  } else if (step > currentStep.value) {
+    if (isCurrentStepValid.value) {
+      currentStep.value = step;
+    } else {
+      alert('请填写当前步骤的必填项');
+    }
+  }
+};
+
+const nextStep = () => {
+  if (!isCurrentStepValid.value) {
+    alert('请填写当前步骤的必填项');
+    return;
+  }
+  if (currentStep.value < totalSteps) {
+    currentStep.value++;
+  }
+};
+
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value--;
+  }
+};
+
+const submitCheckin = async () => {
+  if (!isFormValid.value || loading.value) return;
+  loading.value = true;
+
+  try {
+    const submitData = {
+      ...checkinData.value,
+      sleepHours: Number(checkinData.value.sleepHours),
+      mood: Number(checkinData.value.mood),
+      exerciseMinutes: Number(checkinData.value.exerciseMinutes),
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    let response;
+    if (isEditMode.value) {
+      response = await updateTodayCheckin(submitData);
+    } else {
+      response = await postCheckin(submitData);
+    }
+
+    if (response.success) {
+      const sampleRisks = [];
+      
+      if (checkinData.value.sleepHours < 6) {
+        sampleRisks.push({
+          level: '高',
+          content: '睡眠时间严重不足，长期睡眠不足会导致免疫力下降、记忆力减退，建议尽快调整作息'
+        });
+      } else if (checkinData.value.sleepHours < 7) {
+        sampleRisks.push({
+          level: '中',
+          content: '睡眠时间略显不足，建议增加睡眠时长至7-8小时，以保证身体充分休息'
+        });
+      }
+      
+      if (checkinData.value.exerciseMinutes === 0) {
+        sampleRisks.push({
+          level: '中',
+          content: '今日缺乏运动，建议每天至少进行30分钟的中等强度运动，如快走、慢跑等'
+        });
+      }
+      
+      if (checkinData.value.symptoms.includes('失眠')) {
+        sampleRisks.push({
+          level: '中',
+          content: '出现失眠症状，建议睡前避免使用电子设备，可尝试冥想或听轻音乐放松'
+        });
+      }
+      
+      if (checkinData.value.symptoms.includes('头痛')) {
+        sampleRisks.push({
+          level: '低',
+          content: '出现头痛症状，注意休息和补充水分，如持续不缓解建议就医检查'
+        });
+      }
+      
+      analysisResult.value = {
+        summary: response.summary || '您今天的健康状态良好',
+        suggestions: response.suggestions || [],
+        healthScore: response.healthScore,
+        tomorrowPlan: response.tomorrowPlan || '继续保持良好的作息习惯',
+        tomorrowTasks: [
+          '早睡早起，保证8小时睡眠',
+          '饭后散步30分钟',
+          '多喝温水，保持水分'
+        ],
+        risks: response.risks || sampleRisks
+      };
+      
+      showSuccessModal.value = true;
+      await loadCheckinHistory();
+      
+      if (!isEditMode.value) {
+        isEditMode.value = true;
+        todayCheckinTime.value = formatTime(new Date());
+      }
+    } else {
+      const msg = response.message || '未知错误';
+      if (msg.includes('今日已打卡') || msg.includes('今日已记录')) {
+        showAlreadyChecked.value = true;
+      } else {
+        alert((isEditMode.value ? '修改' : '记录') + '失败：' + msg);
+      }
+    }
+  } catch (error) {
+    console.error('提交记录失败:', error);
+    alert('提交失败，请检查网络连接后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const toggleFilter = () => {
+  showFilter.value = !showFilter.value;
+};
+
+const applyFilter = () => {
+  showFilter.value = false;
+};
+
+const clearFilter = () => {
+  filterStartDate.value = '';
+  filterEndDate.value = '';
+  filterMinScore.value = 0;
+  filterMaxScore.value = 100;
+  filterSymptoms.value = [];
+};
+
+const toggleFilterSymptom = (symptom: string) => {
+  const index = filterSymptoms.value.indexOf(symptom);
+  if (index > -1) {
+    filterSymptoms.value.splice(index, 1);
+  } else {
+    filterSymptoms.value.push(symptom);
+  }
+};
+
+const openExportDialog = () => {
+  showExportDialog.value = true;
+};
+
+const closeExportDialog = () => {
+  showExportDialog.value = false;
+};
+
+const exportToPDF = async () => {
+  if (isExporting.value) return;
+  
+  isExporting.value = true;
+  closeExportDialog();
+  
+  try {
+    const recordsToExport = exportRange.value === 'all' ? filteredHistory.value : filteredHistory.value.slice(0, 10);
+    
+    if (recordsToExport.length === 0) {
+      alert('没有可导出的记录');
+      return;
+    }
+    
+    const exportContainer = document.createElement('div');
+    exportContainer.style.position = 'absolute';
+    exportContainer.style.left = '-9999px';
+    exportContainer.style.width = '800px';
+    exportContainer.style.background = 'white';
+    exportContainer.style.padding = '40px';
+    document.body.appendChild(exportContainer);
+    
+    exportContainer.innerHTML = `
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 28px; color: #0f172a; margin-bottom: 10px;">健康记录报告</h1>
+        <p style="font-size: 14px; color: #64748b;">导出时间：${new Date().toLocaleString('zh-CN')}</p>
+        <p style="font-size: 14px; color: #64748b;">记录数量：${recordsToExport.length} 条</p>
+      </div>
+    `;
+    
+    recordsToExport.forEach((record) => {
+      const recordHtml = `
+        <div style="margin-bottom: 20px; padding: 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <strong style="font-size: 16px;">${record.date}</strong>
+            <span style="color: #10b981; font-weight: bold;">健康分: ${record.healthScore || '-'}</span>
+          </div>
+          <div style="font-size: 14px; color: #475569; line-height: 1.6;">
+            <p>睡眠: ${record.sleepHours || '-'}小时 (${record.sleepTime || '-'}入睡)</p>
+            <p>运动: ${record.exerciseMinutes || 0}分钟</p>
+            <p>心情: ${getMoodInfo(record.mood).name}</p>
+            ${record.symptoms && record.symptoms.length > 0 ? `<p>症状: ${record.symptoms.join('、')}</p>` : ''}
+            ${record.dietNotes ? `<p>饮食: ${record.dietNotes}</p>` : ''}
+          </div>
+        </div>
+      `;
+      exportContainer.innerHTML += recordHtml;
+    });
+    
+    const canvas = await html2canvas(exportContainer, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    });
+    
+    document.body.removeChild(exportContainer);
+    
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+    const margin = 10;
+    const availableWidth = pdfWidth - 2 * margin;
+    const ratio = availableWidth / imgWidth;
+    const scaledHeight = imgHeight * ratio;
+    
+    let heightLeft = scaledHeight;
+    let position = margin;
+    let pageCount = 0;
+    
+    pdf.addImage(imgData, 'PNG', margin, position, availableWidth, scaledHeight);
+    heightLeft -= (pdfHeight - 2 * margin);
+    pageCount++;
+    
+    while (heightLeft > 0) {
+      position = -(pageCount * (pdfHeight - 2 * margin)) + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, position, availableWidth, scaledHeight);
+      heightLeft -= (pdfHeight - 2 * margin);
+      pageCount++;
+    }
+    
+    pdf.save(`健康记录_${new Date().getTime()}.pdf`);
+    alert('导出成功！');
+  } catch (error) {
+    console.error('导出失败:', error);
+    alert('导出失败，请重试');
+  } finally {
+    isExporting.value = false;
+  }
+};
+
+const closeSuccessModal = async () => {
+  showSuccessModal.value = false;
+  await loadCheckinHistory();
+};
+
+const closeAlreadyChecked = () => {
+  showAlreadyChecked.value = false;
+  router.push('/dashboard-metrics');
+};
+
+const checkIfAlreadyCheckedIn = async () => {
+  try {
+    const result = await checkTodayCheckin();
+    if (result.hasCheckedIn) {
+      todayCheckinTime.value = result.checkinTime || '';
+      if (result.checkinData) {
+        const data = result.checkinData;
+        checkinData.value = {
+          sleepHours: data.sleepHours ?? 8,
+          sleepTime: data.sleepTime ?? '23:00',
+          symptoms: Array.isArray(data.symptoms) ? data.symptoms : [],
+          mood: data.mood ?? 2,
+          exerciseMinutes: data.exerciseMinutes ?? 30,
+          dietNotes: data.dietNotes ?? ''
+        };
+      }
+      showAlreadyChecked.value = true;
+    }
+  } catch (error) {
+    console.error('检查记录状态失败:', error);
+  }
+};
+
+const enterEditMode = () => {
+  showAlreadyChecked.value = false;
+  isEditMode.value = true;
+};
+
+const continueCheckin = async () => {
+  showSuccessModal.value = false;
+  await loadCheckinHistory();
+};
+
+const resetForm = () => {
+  showResult.value = false;
+  analysisResult.value = null;
+  currentStep.value = 1;
+  checkinData.value = {
+    sleepHours: 8,
+    sleepTime: '23:00',
+    symptoms: [],
+    mood: 2,
+    exerciseMinutes: 30,
+    dietNotes: ''
+  };
+};
+
+const drawHealthChart = async () => {
+  if (!chartCanvas.value) return;
+
+  const ctx = chartCanvas.value.getContext('2d');
+  if (!ctx) return;
+
+  try {
+    const trendsResponse = await getHealthTrends(7);
+    const trendsData = trendsResponse.trends || [];
+
+    ctx.clearRect(0, 0, 400, 200);
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(40, 20);
+    ctx.lineTo(40, 180);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(40, 180);
+    ctx.lineTo(380, 180);
+    ctx.stroke();
+
+    if (trendsData.length > 0) {
+      ctx.strokeStyle = '#42b983';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+
+      trendsData.forEach((item: HealthTrend, index: number) => {
+        const x = 60 + index * (320 / Math.max(trendsData.length - 1, 1));
+        const y = 180 - ((item.healthScore || 70) - 50) * 2.6;
+
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#42b983';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#42b983';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText((item.healthScore || 70).toString(), x, y - 10);
+      });
+
+      ctx.stroke();
+
+      ctx.fillStyle = '#6c757d';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+
+      trendsData.forEach((item: HealthTrend, index: number) => {
+        const x = 60 + index * (320 / Math.max(trendsData.length - 1, 1));
+        const date = new Date(item.date);
+        const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const dayName = dayNames[date.getDay()];
+        ctx.fillText(dayName || '', x, 195);
+      });
+    } else {
+      ctx.fillStyle = '#6c757d';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('暂无数据，请先进行记录', 200, 100);
+    }
+  } catch (error) {
+    console.error('绘制图表失败:', error);
+    ctx.fillStyle = '#dc3545';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('数据加载失败', 200, 100);
+  }
+};
+
+const loadCheckinHistory = async () => {
+  try {
+    let historyList: RawCheckinRecord[] = [];
+    
+    try {
+        const summary = await getCheckinSummary();
+        if (summary?.history) {
+            historyList = summary.history as RawCheckinRecord[];
+        }
+    } catch (e) {
+        console.warn('获取详细历史失败，尝试获取趋势数据', e);
+    }
+
+    if (historyList.length === 0) {
+        const t = await getHealthTrends(7);
+        historyList = (t?.trends ?? []) as RawCheckinRecord[];
+    }
+
+    checkinHistory.value = historyList.slice(-7).reverse().map((record) => {
+      const date = record.date || record.checkin_date || record.checkinDate || '';
+      const score = record.healthScore ?? record.health_score;
+      const summary = record.summary ?? (score !== undefined ? `健康分 ${score}` : '已记录');
+      
+      let symptoms = record.symptoms;
+      if (typeof symptoms === 'string') {
+        try { symptoms = JSON.parse(symptoms); } catch {}
+      }
+      if (!Array.isArray(symptoms)) symptoms = [];
+
+      return { 
+        date, 
+        healthScore: score, 
+        summary,
+        sleepHours: record.sleepHours ?? record.sleep_hours,
+        sleepTime: record.sleepTime ?? record.sleep_time,
+        symptoms: symptoms,
+        mood: record.mood,
+        exerciseMinutes: record.exerciseMinutes ?? record.exercise_minutes,
+        dietNotes: record.dietNotes ?? record.diet_notes ?? record.diet,
+        createdAt: record.createdAt ?? record.created_at
+      } as HealthTrend;
+    });
+  } catch (err) {
+    console.error('加载历史记录失败:', err);
+    checkinHistory.value = [];
+  }
+};
+
+const getMoodInfo = (index: number | undefined) => {
+  if (index === undefined || index < 0 || index >= moods.length) return { emoji: '🤔', name: '未记录' };
+  return moods[index] ?? { emoji: '🤔', name: '未记录' };
+};
+
+const openDetailModal = (record: HealthTrend) => {
+  selectedRecord.value = record;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  setTimeout(() => {
+    selectedRecord.value = null;
+  }, 300);
+};
+
+onMounted(async () => {
+  await checkIfAlreadyCheckedIn();
+  loadCheckinHistory();
+});
+
+watch(showResult, async (v) => {
+  if (v) {
+    await nextTick();
+    drawHealthChart();
+  }
+});
+</script>
+
+// ========================================
+// 上面的代码添加到第 627 行之后
+// 然后在下一行添加 <style scoped>
+// ========================================

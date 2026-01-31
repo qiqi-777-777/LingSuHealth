@@ -5,7 +5,11 @@ import App from '../App.vue'
 
 describe('App', () => {
   it('mounts renders properly', () => {
-    const wrapper = mount(App)
-    expect(wrapper.text()).toContain('You did it!')
+    const wrapper = mount(App, {
+      global: {
+        stubs: ['router-view']
+      }
+    })
+    expect(wrapper.find('router-view-stub').exists()).toBe(true)
   })
 })

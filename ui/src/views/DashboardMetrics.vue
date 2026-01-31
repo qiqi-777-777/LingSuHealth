@@ -1,121 +1,192 @@
-﻿<template>
+<template>
   <div class="dashboard-metrics">
-    <button class="back-btn back-top-left" @click="goBack">
+    <!-- 动态背景元素 -->
+    <div class="bg-blob b1"></div>
+    <div class="bg-blob b2"></div>
+
+    <button class="glass-btn back-top-left" @click="goBack">
       <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M19 12H5M12 19l-7-7 7-7"/>
       </svg>
-      <span>返回首页</span>
+      <span class="back-text">返回首页</span>
     </button>
-    <div class="metrics-header">
-      <h1>健康仪表盘</h1>
-      <p>实时监控您的健康数据</p>
-    </div>
 
-    <div class="metrics-grid">
-      <!-- 近7天记录数 -->
-      <div class="metric-card">
-        <div class="metric-icon sleep">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 3a6 6 0 0 0 9 5.2A9 9 0 1 1 8.2 3a6 6 0 0 0 3.8 0z"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <h3>近7天记录数</h3>
-          <div class="metric-value">{{ summary.totalCheckins }}</div>
-          <div class="metric-status good">趋势统计</div>
-        </div>
+    <div class="content-wrapper">
+      <div class="metrics-header">
+        <h1>健康仪表盘</h1>
+        <p>实时监控您的健康数据</p>
       </div>
 
-      <!-- 连续记录天数 -->
-      <div class="metric-card">
-        <div class="metric-icon activity">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M13 3h-2v10h2V3zm4 4h-2v6h2V7zM7 9H5v4h2V9z"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <h3>连续记录天数</h3>
-          <div class="metric-value">{{ summary.consecutiveDays }}</div>
-          <div class="metric-status normal">坚持就是胜利</div>
-        </div>
-      </div>
-
-      <!-- 本周目标 -->
-      <div class="metric-card">
-        <div class="metric-icon constitution">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5..."/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <h3>本周目标</h3>
-          <div class="metric-value">{{ summary.weeklyGoal }}</div>
-          <div class="metric-status excellent">每周7天</div>
-        </div>
-      </div>
-
-      <!-- 完成率 -->
-      <div class="metric-card">
-        <div class="metric-icon constitution">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/>
-          </svg>
-        </div>
-        <div class="metric-content">
-          <h3>完成率</h3>
-          <div class="metric-value">{{ summary.completionRate }}%</div>
-          <div class="metric-status excellent">目标进度</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 原趋势图删除，改为两个动画图表 -->
-    <div class="card chart-row">
-      <div class="trend-card">
-        <canvas id="trendLineCanvas"></canvas>
-      </div>
-      <div class="mood-card">
-        <canvas id="moodDonutCanvas"></canvas>
-        <!-- 鼠标悬停提示框 -->
-        <div v-if="moodTooltip.show" class="mood-tooltip" :style="{
-          left: moodTooltip.x + 'px',
-          top: moodTooltip.y + 'px'
-        }">
-          <div class="tooltip-header">{{ moodTooltip.label }}</div>
-          <div class="tooltip-content">
-            <div class="tooltip-item">
-              <span class="tooltip-icon">📊</span>
-              <span>共 {{ moodTooltip.count }} 天</span>
+      <div class="metrics-grid">
+        <div v-for="card in metricCards" :key="card.id" class="metric-card glass-card">
+          <div class="metric-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path :d="card.iconPath"/>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <div class="metric-header-row">
+              <h3>{{ card.title }}</h3>
+              <div
+                v-if="card.anomaly"
+                class="anomaly-badge"
+                :title="card.anomaly.tooltip"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2 1 21h22L12 2zm0 6a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V9a1 1 0 0 1 1-1zm0 11a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/>
+                </svg>
+              </div>
             </div>
-            <div class="tooltip-divider"></div>
-            <div v-for="(state, index) in moodTooltip.moodStates" :key="index" class="tooltip-item mood-detail">
-              <span>{{ state }}</span>
+            <div class="metric-value">{{ card.valueText }}</div>
+            <div class="metric-status" :class="card.statusClass">{{ card.status }}</div>
+            <div class="metric-compare">
+              <div v-for="cmp in card.comparisons" :key="cmp.label" class="compare-item">
+                <span class="compare-label">{{ cmp.label }}</span>
+                <span class="compare-value" :class="cmp.direction">
+                  <svg v-if="cmp.direction !== 'flat'" viewBox="0 0 24 24" fill="currentColor">
+                    <path v-if="cmp.direction === 'up'" d="M12 5l7 7h-4v7h-6v-7H5l7-7z"/>
+                    <path v-else d="M12 19l-7-7h4V5h6v7h4l-7 7z"/>
+                  </svg>
+                  <svg v-else viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 12h14v2H5z"/>
+                  </svg>
+                  <span>{{ cmp.percentText }}</span>
+                </span>
+                <span class="compare-diff">{{ cmp.diffText }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 底部返回首页按钮已移除 -->
-    <!-- <div class="actions">
-         <button class="back-btn" @click="goBack">← 返回首页</button>
-       </div> -->
+      <!-- 图表区域 -->
+      <div class="charts-row">
+        <div class="chart-card glass-card trend-card">
+          <div class="card-header">
+            <h3>
+              <div class="icon-box-small">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              健康趋势
+            </h3>
+          </div>
+          <div v-if="trendChartState === 'loading'" class="chart-loading">
+            <div class="loading-spinner"></div>
+            <p>数据加载中...</p>
+          </div>
+          <div v-else-if="trendChartState === 'error'" class="chart-empty">
+            <p>趋势图加载失败</p>
+            <span class="chart-error">{{ errorMessage }}</span>
+            <button type="button" class="retry-btn" @click="retryLoad">重试</button>
+          </div>
+          <div v-else-if="trendChartState === 'empty'" class="chart-empty">
+            <p>暂无趋势数据</p>
+            <button type="button" class="retry-btn" @click="retryLoad">重新获取</button>
+          </div>
+          <div v-else class="chart-body">
+             <canvas id="trendLineCanvas"></canvas>
+          </div>
+        </div>
+        
+        <div class="chart-card glass-card mood-card">
+          <div class="card-header">
+            <h3>
+              <div class="icon-box-small">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                  <line x1="9" y1="9" x2="9.01" y2="9"/>
+                  <line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </div>
+              心情分布
+            </h3>
+          </div>
+          <div v-if="moodChartState === 'loading'" class="chart-loading">
+            <div class="loading-spinner"></div>
+            <p>数据加载中...</p>
+          </div>
+          <div v-else-if="moodChartState === 'error'" class="chart-empty">
+            <p>情绪图加载失败</p>
+            <span class="chart-error">{{ errorMessage }}</span>
+            <button type="button" class="retry-btn" @click="retryLoad">重试</button>
+          </div>
+          <div v-else-if="moodChartState === 'empty'" class="chart-empty">
+            <p>暂无情绪数据</p>
+            <button type="button" class="retry-btn" @click="retryLoad">重新获取</button>
+          </div>
+          <div v-else class="chart-body">
+             <canvas id="moodDonutCanvas"></canvas>
+          </div>
+          
+          <transition name="fade">
+            <div v-if="moodChartState === 'ready' && moodTooltip.show" class="mood-tooltip" :style="{
+              left: moodTooltip.x + 'px',
+              top: moodTooltip.y + 'px'
+            }">
+              <div class="tooltip-header">{{ moodTooltip.label }}</div>
+              <div class="tooltip-content">
+                <div class="tooltip-item">
+                  <span class="tooltip-icon">
+                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                     </svg>
+                  </span>
+                  <span>共 {{ moodTooltip.count }} 天</span>
+                </div>
+                <div class="tooltip-divider"></div>
+                <div v-for="(item, index) in moodTooltip.moodStates" :key="index" class="tooltip-item mood-detail">
+                  <svg class="mood-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                     <path :d="moodIcons[item.iconIndex]" />
+                  </svg>
+                  <span>{{ item.label }} ({{ item.count }}天)</span>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { getCheckinSummary, getHealthTrends } from '../services/api';
+import {
+  buildComparisons,
+  evaluateAnomaly,
+  formatSigned,
+  type ComparisonResult,
+  type MetricAnomalyRule
+} from '../utils/dashboardMetrics';
 
 // 类型定义
-type TrendItem = { date: string; sleepHours: number | null; exerciseMinutes: number | null };
+type TrendItem = { date: string; sleepHours: number | null; exerciseMinutes: number };
 type MoodCounts = { 
   positive: number; 
   neutral: number; 
   negative: number; 
   sampleDays: number;
   moodDetails: { [key: number]: number }; // 记录每种具体情绪的数量
+};
+type RawTrendRow = {
+  date?: string;
+  checkin_date?: string;
+  checkinDate?: string;
+  sleepHours?: number;
+  sleep_hours?: number;
+  exerciseMinutes?: number;
+  exercise_minutes?: number;
+  symptoms?: string[] | string;
+  mood?: number;
+  mood_score?: number;
 };
 
 // 路由
@@ -135,13 +206,25 @@ const trends = ref<Array<{
   symptoms?: string[] | string;
   mood?: number;
 }>>([]);
-const loading = ref(true);
+const loadState = ref<'loading' | 'ready' | 'empty' | 'error'>('loading');
+const errorMessage = ref('');
+const lastUpdated = ref('');
 const trendAggregated = ref<TrendItem[]>([]);
 const moodCounts = ref<MoodCounts>({ positive: 0, neutral: 0, negative: 0, sampleDays: 0, moodDetails: {} });
+const dailyCounts = ref<Record<string, number>>({});
+const chartDrawn = ref({ trend: false, mood: false });
 
 // 情绪状态映射（与Checkin.vue保持一致）
 const moodLabels = ['很差', '一般', '良好', '很好', '极佳'];
-const moodEmojis = ['😢', '😕', '😊', '😄', '🤩'];
+
+// 情绪图标SVG路径
+const moodIcons = [
+  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9c.83 0 1.5-.67 1.5-1.5S7.83 8 7 8s-1.5.67-1.5 1.5S6.17 11 7 11zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 8 17 8s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-5 7.5c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z', // 很差
+  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM7 10c.83 0 1.5-.67 1.5-1.5S7.83 7 7 7s-1.5.67-1.5 1.5S6.17 10 7 10zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 7 17 7s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-5 6c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z', // 一般
+  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM7 10c.83 0 1.5-.67 1.5-1.5S7.83 7 7 7s-1.5.67-1.5 1.5S6.17 10 7 10zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 7 17 7s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-5 3c2.33 0 4.31 1.46 5.11 3.5H6.89c.8-2.04 2.78-3.5 5.11-3.5z', // 良好
+  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM7 10c.83 0 1.5-.67 1.5-1.5S7.83 7 7 7s-1.5.67-1.5 1.5S6.17 10 7 10zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 7 17 7s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-5 3c2.33 0 4.31 1.46 5.11 3.5H6.89c.8-2.04 2.78-3.5 5.11-3.5z', // 很好
+  'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM7 10c.83 0 1.5-.67 1.5-1.5S7.83 7 7 7s-1.5.67-1.5 1.5S6.17 10 7 10zm10 0c.83 0 1.5-.67 1.5-1.5S17.83 7 17 7s-1.5.67-1.5 1.5.67 1.5 1.5 1.5zm-5 3c2.33 0 4.31 1.46 5.11 3.5H6.89c.8-2.04 2.78-3.5 5.11-3.5z'  // 极佳
+];
 
 // Tooltip状态
 const moodTooltip = ref({
@@ -150,8 +233,54 @@ const moodTooltip = ref({
   y: 0,
   label: '',
   count: 0,
-  moodStates: [] as string[]
+  moodStates: [] as Array<{ iconIndex: number; label: string; count: number }>
 });
+
+type MetricId = 'checkins' | 'streak' | 'goal' | 'completion';
+type ChartState = 'loading' | 'ready' | 'empty' | 'error';
+type MetricCard = {
+  id: MetricId;
+  title: string;
+  valueText: string;
+  status: string;
+  statusClass: 'excellent' | 'good' | 'normal';
+  iconClass: string;
+  iconPath: string;
+  comparisons: Array<{
+    label: string;
+    percentText: string;
+    diffText: string;
+    direction: 'up' | 'down' | 'flat';
+  }>;
+  anomaly?: { tooltip: string };
+};
+
+// 异常检测规则，可根据业务进行调整
+const anomalyRules: Record<MetricId, MetricAnomalyRule> = {
+  checkins: { min: 2, max: 7, percentChangeThreshold: 40, diffThreshold: 3 },
+  streak: { min: 1, max: 30, percentChangeThreshold: 60, diffThreshold: 3 },
+  goal: { min: 3, max: 7, percentChangeThreshold: 20, diffThreshold: 2 },
+  completion: { min: 40, max: 100, percentChangeThreshold: 30, diffThreshold: 20 }
+};
+
+const metricIcons: Record<MetricId, { iconClass: string; path: string }> = {
+  checkins: {
+    iconClass: 'sleep',
+    path: 'M12 3a6 6 0 0 0 9 5.2A9 9 0 1 1 8.2 3a6 6 0 0 0 3.8 0z'
+  },
+  streak: {
+    iconClass: 'activity',
+    path: 'M13 3h-2v10h2V3zm4 4h-2v6h2V7zM7 9H5v4h2V9z'
+  },
+  goal: {
+    iconClass: 'constitution',
+    path: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5a5.5 5.5 0 0 1 10.7-1.8A5.5 5.5 0 1 1 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'
+  },
+  completion: {
+    iconClass: 'constitution',
+    path: 'M12 2a10 10 0 100 20 10 10 0 000-20z'
+  }
+};
 
 // 解析症状（兼容 string[] 或 JSON 字符串）
 function normalizeSymptoms(sym: unknown): string[] {
@@ -187,7 +316,7 @@ function getLastNDates(n: number): string[] {
 }
 
 // 按日期聚合（睡眠平均、运动量求和、症状去重、收集心情）
-function aggregateByDate(rows: any[]) {
+function aggregateByDate(rows: RawTrendRow[]) {
   const map: Record<string, {
     date: string;
     sleepHours: number[];
@@ -239,7 +368,129 @@ function aggregateByDate(rows: any[]) {
   return obj;
 }
 
-onMounted(async () => {
+// 计算指定日期截止的连续记录天数
+function calculateStreak(countMap: Record<string, number>, days: string[], endIndex: number) {
+  let streak = 0;
+  for (let i = endIndex; i >= 0; i--) {
+    const day = days[i];
+    if (!day || countMap[day] !== 1) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+// 格式化对比数据展示文本
+function formatComparisonRows(comparisons: ComparisonResult[]) {
+  return comparisons.map((cmp) => ({
+    label: cmp.type === 'week' ? '较上周' : '较昨日',
+    percentText: `${formatSigned(cmp.percent, 1)}%`,
+    diffText: `差值 ${formatSigned(cmp.diff)}`,
+    direction: cmp.direction
+  }));
+}
+
+// 图表状态用于兜底展示与重试
+const trendChartState = computed<ChartState>(() => {
+  if (loadState.value === 'loading') return 'loading';
+  if (loadState.value === 'error') return 'error';
+  const hasData = trendAggregated.value.some((item) => item.sleepHours !== null || item.exerciseMinutes > 0);
+  return hasData ? 'ready' : 'empty';
+});
+
+const moodChartState = computed<ChartState>(() => {
+  if (loadState.value === 'loading') return 'loading';
+  if (loadState.value === 'error') return 'error';
+  return moodCounts.value.sampleDays > 0 ? 'ready' : 'empty';
+});
+
+// 组装指标卡数据与对比结果
+const metricCards = computed<MetricCard[]>(() => {
+  const days = getLastNDates(14);
+  const currentWeekDays = days.slice(7);
+  const prevWeekDays = days.slice(0, 7);
+  const today = days[days.length - 1];
+
+  const currentWeekCount = currentWeekDays.reduce((sum, d) => sum + (dailyCounts.value[d] || 0), 0);
+  const prevWeekCount = prevWeekDays.reduce((sum, d) => sum + (dailyCounts.value[d] || 0), 0);
+  const todayCount = today ? dailyCounts.value[today] || 0 : 0;
+
+  const weeklyGoal = summary.value.weeklyGoal || 7;
+  const completionRate = weeklyGoal > 0 ? Math.round((currentWeekCount / weeklyGoal) * 100) : 0;
+  const completionRateLastWeek = weeklyGoal > 0 ? Math.round((prevWeekCount / weeklyGoal) * 100) : 0;
+  const completionRateYesterday = weeklyGoal > 0 ? Math.round(((currentWeekCount - todayCount) / weeklyGoal) * 100) : 0;
+
+  const streakToday = calculateStreak(dailyCounts.value, days, days.length - 1);
+  const streakYesterday = calculateStreak(dailyCounts.value, days, days.length - 2);
+  const streakLastWeek = calculateStreak(dailyCounts.value, days, 6);
+
+  const checkinsComparisons = buildComparisons(currentWeekCount, prevWeekCount, currentWeekCount - todayCount);
+  const streakComparisons = buildComparisons(streakToday, streakLastWeek, streakYesterday);
+  const goalComparisons = buildComparisons(weeklyGoal, weeklyGoal, weeklyGoal);
+  const completionComparisons = buildComparisons(completionRate, completionRateLastWeek, completionRateYesterday);
+
+  const anomalyTime = lastUpdated.value || new Date().toLocaleString();
+
+  const checkinsAnomaly = evaluateAnomaly(currentWeekCount, checkinsComparisons, anomalyRules.checkins, anomalyTime);
+  const streakAnomaly = evaluateAnomaly(streakToday, streakComparisons, anomalyRules.streak, anomalyTime);
+  const goalAnomaly = evaluateAnomaly(weeklyGoal, goalComparisons, anomalyRules.goal, anomalyTime);
+  const completionAnomaly = evaluateAnomaly(completionRate, completionComparisons, anomalyRules.completion, anomalyTime);
+
+  const cards: MetricCard[] = [
+    {
+      id: 'checkins',
+      title: '近7天记录数',
+      valueText: String(currentWeekCount),
+      status: '趋势统计',
+      statusClass: 'good',
+      iconClass: metricIcons.checkins.iconClass,
+      iconPath: metricIcons.checkins.path,
+      comparisons: formatComparisonRows(checkinsComparisons),
+      anomaly: checkinsAnomaly ? { tooltip: `异常：${checkinsAnomaly.reason}\n时间：${checkinsAnomaly.time}` } : undefined
+    },
+    {
+      id: 'streak',
+      title: '连续记录天数',
+      valueText: String(streakToday),
+      status: '坚持就是胜利',
+      statusClass: 'normal',
+      iconClass: metricIcons.streak.iconClass,
+      iconPath: metricIcons.streak.path,
+      comparisons: formatComparisonRows(streakComparisons),
+      anomaly: streakAnomaly ? { tooltip: `异常：${streakAnomaly.reason}\n时间：${streakAnomaly.time}` } : undefined
+    },
+    {
+      id: 'goal',
+      title: '本周目标',
+      valueText: String(weeklyGoal),
+      status: '每周7天',
+      statusClass: 'excellent',
+      iconClass: metricIcons.goal.iconClass,
+      iconPath: metricIcons.goal.path,
+      comparisons: formatComparisonRows(goalComparisons),
+      anomaly: goalAnomaly ? { tooltip: `异常：${goalAnomaly.reason}\n时间：${goalAnomaly.time}` } : undefined
+    },
+    {
+      id: 'completion',
+      title: '完成率',
+      valueText: `${completionRate}%`,
+      status: '目标进度',
+      statusClass: 'excellent',
+      iconClass: metricIcons.completion.iconClass,
+      iconPath: metricIcons.completion.path,
+      comparisons: formatComparisonRows(completionComparisons),
+      anomaly: completionAnomaly ? { tooltip: `异常：${completionAnomaly.reason}\n时间：${completionAnomaly.time}` } : undefined
+    }
+  ];
+
+  return cards;
+});
+
+// 拉取仪表盘数据并驱动图表绘制
+async function loadDashboardMetrics() {
+  loadState.value = 'loading';
+  errorMessage.value = '';
+  chartDrawn.value = { trend: false, mood: false };
+
   try {
     const s = await getCheckinSummary();
     summary.value = {
@@ -249,12 +500,18 @@ onMounted(async () => {
       completionRate: s.completionRate ?? 0
     };
 
-    const t = await getHealthTrends(7);
-    const raw: any[] = t.trends || [];
+    const t = await getHealthTrends(14);
+    const raw: RawTrendRow[] = t.trends || [];
     const byDate = aggregateByDate(raw);
-    const days = getLastNDates(7);
+    const days = getLastNDates(14);
 
-    trends.value = days.map((d: string) => ({
+    dailyCounts.value = days.reduce((acc, d) => {
+      acc[d] = byDate[d] ? 1 : 0;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const latestDays = days.slice(7);
+    trends.value = latestDays.map((d: string) => ({
       date: d,
       sleepHours: byDate[d]?.sleepHours ?? null,
       exerciseMinutes: byDate[d]?.exerciseMinutes ?? 0,
@@ -264,22 +521,17 @@ onMounted(async () => {
         : undefined
     }));
 
-    // 统一把 trends.value 映射为绘图需要的结构
     trendAggregated.value = trends.value.map(d => ({
       date: d.date || '',
       sleepHours: d.sleepHours ?? null,
       exerciseMinutes: d.exerciseMinutes ?? 0
     }));
 
-    // 统计情绪分布（示例分段：0-1 负面，2 中性，3-4 正面）
     const mc: MoodCounts = { positive: 0, neutral: 0, negative: 0, sampleDays: 0, moodDetails: {} };
     trends.value.forEach(d => {
       if (typeof d.mood === 'number') {
         mc.sampleDays += 1;
-        // 统计具体情绪
         mc.moodDetails[d.mood] = (mc.moodDetails[d.mood] || 0) + 1;
-        
-        // 分类统计
         if (d.mood <= 1) mc.negative += 1;
         else if (d.mood === 2) mc.neutral += 1;
         else mc.positive += 1;
@@ -287,14 +539,30 @@ onMounted(async () => {
     });
     moodCounts.value = mc;
 
-    // 使用带参数版本的绘图函数（此时两个变量已存在）
-    drawAnimatedLineChart('trendLineCanvas', trendAggregated.value);
-    drawAnimatedDonutChart('moodDonutCanvas', moodCounts.value);
+    lastUpdated.value = new Date().toLocaleString();
+    loadState.value = raw.length ? 'ready' : 'empty';
+
+    await nextTick();
+    if (trendChartState.value === 'ready' && !chartDrawn.value.trend) {
+      drawAnimatedLineChart('trendLineCanvas', trendAggregated.value);
+      chartDrawn.value.trend = true;
+    }
+    if (moodChartState.value === 'ready' && !chartDrawn.value.mood) {
+      drawAnimatedDonutChart('moodDonutCanvas', moodCounts.value);
+      chartDrawn.value.mood = true;
+    }
   } catch (error) {
-    console.error('获取仪表盘数据失败:', error);
-  } finally {
-    loading.value = false;
+    errorMessage.value = error instanceof Error ? error.message : '数据获取失败';
+    loadState.value = 'error';
   }
+}
+
+function retryLoad() {
+  loadDashboardMetrics();
+}
+
+onMounted(() => {
+  loadDashboardMetrics();
 });
 
 /* 连续绘制 + 平滑曲线，带参数版本 */
@@ -533,7 +801,7 @@ function drawAnimatedDonutChart(canvasId: string, mood: MoodCounts) {
     moodRange: number[];
   }> = [];
 
-  let startAngle = -Math.PI / 2;
+  const startAngle = -Math.PI / 2;
   const duration = 900;
   let start = 0;
 
@@ -641,11 +909,15 @@ function drawAnimatedDonutChart(canvasId: string, mood: MoodCounts) {
         
         if (inSector && sector.count > 0) {
           // 获取该类别下的具体情绪状态
-          const moodStates: string[] = [];
+          const moodStates: Array<{ iconIndex: number; label: string; count: number }> = [];
           sector.moodRange.forEach(moodIndex => {
             const count = mood.moodDetails[moodIndex] || 0;
             if (count > 0) {
-              moodStates.push(`${moodEmojis[moodIndex]} ${moodLabels[moodIndex]} (${count}天)`);
+              moodStates.push({
+                iconIndex: moodIndex,
+                label: moodLabels[moodIndex] || '未知',
+                count: count
+              });
             }
           });
           
@@ -703,230 +975,347 @@ function goBack() {
 
 <style scoped>
 .dashboard-metrics {
-  position: relative;
+  --primary-color: #10b981;
+  --primary-dark: #059669;
+  --primary-light: #d1fae5;
+  --accent-color: #3b82f6;
+  --text-main: #0f172a;
+  --text-sub: #475569;
+  --bg-page: #f0fdf4;
+  
   min-height: 100vh;
-  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
   padding: 40px 20px;
+  background: var(--bg-page);
+  position: relative;
+  overflow: hidden;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text-main);
+}
+
+/* 背景装饰 */
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.6;
+}
+.b1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: rgba(16, 185, 129, 0.15); animation: float 10s infinite; }
+.b2 { bottom: -10%; right: -10%; width: 40vw; height: 40vw; background: rgba(59, 130, 246, 0.15); animation: float 12s infinite reverse; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, 20px); }
+}
+
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* 玻璃拟态 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glass-btn:hover {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.back-top-left {
+  position: fixed !important;
+  top: 24px !important;
+  left: 24px !important;
+  z-index: 100;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 24px !important;
+  border-radius: 30px !important;
+}
+
+.back-top-left .back-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.back-top-left .back-text {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .metrics-header {
   text-align: center;
-  margin-bottom: 28px;
+  margin-bottom: 40px;
 }
+
 .metrics-header h1 {
   font-size: 32px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-weight: 800;
+  color: var(--text-main);
   margin: 0 0 8px 0;
+  background: linear-gradient(135deg, var(--text-main) 0%, var(--text-sub) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
+
 .metrics-header p {
   font-size: 16px;
-  color: #6b7280;
+  color: var(--text-sub);
   margin: 0;
 }
 
+/* Metric Cards */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
-  max-width: 1200px;
-  margin: 0 auto 24px auto;
-}
-
-/* 统一卡片风格 */
-.metric-card,
-.chart-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  margin-bottom: 32px;
 }
 
 .metric-card {
+  padding: 24px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.metric-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.metric-icon svg {
-  width: 36px;
-  height: 36px;
-  color: #fff;
-}
-.metric-icon.sleep { background: linear-gradient(135deg, #667eea, #764ba2); }
-.metric-icon.activity { background: linear-gradient(135deg, #f093fb, #f5576c); }
-.metric-icon.constitution { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-
-.metric-content h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 6px 0;
-}
-.metric-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2c3e50;
-  margin: 0 0 6px 0;
-}
-.metric-status {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 12px;
-  display: inline-block;
-}
-.metric-status.excellent { background: #d4edda; color: #155724; }
-.metric-status.good { background: #cce5ff; color: #004085; }
-.metric-status.normal { background: #fff3cd; color: #856404; }
-
-/* 图表卡片标题 */
-.chart-card {
-  max-width: 1200px;
-  margin: 0 auto 24px auto;
-}
-.chart-card h3 {
-  margin: 0 0 12px 0;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-/* 左上角返回按钮 */
-.back-top-left {
-  position: absolute;
-  top: 10px;
-  left: 20px;
-  z-index: 100;
-}
-
-/* 按钮样式 - 现代毛玻璃效果 */
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 24px;
-  border-radius: 30px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  gap: 20px;
+  align-items: flex-start;
   position: relative;
   overflow: hidden;
 }
 
-.back-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.back-btn:hover::before {
-  opacity: 1;
-}
-
-.back-btn:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.95);
-}
-
-.back-btn:active {
-  transform: translateY(0) translateX(0);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.back-icon {
-  width: 18px;
-  height: 18px;
-  transition: transform 0.3s ease;
-  position: relative;
-  z-index: 1;
-}
-
-.back-btn:hover .back-icon {
-  transform: translateX(-3px);
-}
-
-.back-btn span {
-  position: relative;
-  z-index: 1;
-}
-
-/* 图表布局 */
-.chart-row {
+.metric-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
-  gap: 24px;
-  align-items: stretch;
-}
-.trend-card {
-  flex: 1;
-}
-.mood-card {
-  width: 340px;
-  min-width: 300px;
-  position: relative;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.8);
+  color: var(--primary-color);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
-/* Tooltip样式 */
-.mood-tooltip {
-  position: absolute;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 12px 16px;
+.metric-icon-wrapper svg { width: 24px; height: 24px; }
+
+.metric-content { flex: 1; }
+
+.metric-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.metric-header-row h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.anomaly-badge {
+  color: #ef4444;
+  width: 16px;
+  height: 16px;
+  cursor: help;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.metric-status {
+  font-size: 12px;
+  margin-bottom: 12px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.metric-status.excellent { background: #dcfce7; color: #166534; }
+.metric-status.good { background: #dbeafe; color: #1e40af; }
+.metric-status.normal { background: #f3f4f6; color: #475569; }
+
+.compare-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.compare-label { color: #94a3b8; }
+
+.compare-value {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+}
+
+.compare-value.up { color: #ef4444; } /* Usually red for up? context dependent, assuming health metrics up is good/bad? sticking to generic */
+.compare-value.down { color: #10b981; }
+.compare-value.flat { color: #94a3b8; }
+
+.compare-value svg { width: 12px; height: 12px; }
+
+.compare-diff { color: #94a3b8; margin-left: auto; }
+
+/* Charts */
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.chart-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+
+.card-header {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-box-small {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-light);
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-dark);
+}
+
+.icon-box-small svg { width: 18px; height: 18px; }
+
+.chart-body {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-body canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-state {
+  text-align: center;
+  color: var(--text-sub);
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.retry-btn {
+  margin-top: 8px;
+  padding: 6px 16px;
+  border: 1px solid var(--primary-color);
+  background: white;
+  color: var(--primary-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Tooltip */
+.mood-tooltip {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  padding: 12px;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   min-width: 140px;
-  backdrop-filter: blur(10px);
-  animation: tooltipFadeIn 0.2s ease-out;
-}
-
-@keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  transform: translate(10px, 10px);
 }
 
 .tooltip-header {
-  font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-main);
   margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding-bottom: 6px;
-}
-
-.tooltip-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  font-size: 14px;
 }
 
 .tooltip-item {
@@ -934,32 +1323,29 @@ function goBack() {
   align-items: center;
   gap: 8px;
   font-size: 13px;
-}
-
-.tooltip-icon {
-  font-size: 16px;
+  color: var(--text-sub);
+  margin-bottom: 4px;
 }
 
 .tooltip-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0,0,0,0.05);
   margin: 6px 0;
 }
 
-.mood-detail {
-  font-size: 12px;
-  color: #e0e0e0;
-  padding-left: 4px;
-}
-#trendLineCanvas, #moodDonutCanvas {
-  width: 100%;
-  height: 280px;
-  display: block;
+.mood-icon-small { width: 14px; height: 14px; color: var(--primary-color); }
+
+/* Fade Transition */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@media (max-width: 900px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .chart-card { min-height: 300px; }
 }
 
-/* 响应式 */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .metrics-grid { grid-template-columns: 1fr; }
-  .metric-card { padding: 20px; }
+  .glass-panel { padding: 24px; }
 }
 </style>

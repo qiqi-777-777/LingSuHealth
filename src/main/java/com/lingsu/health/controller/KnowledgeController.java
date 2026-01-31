@@ -1,6 +1,8 @@
 package com.lingsu.health.controller;
 
+import com.lingsu.health.entity.IngredientInteraction;
 import com.lingsu.health.entity.KnowledgeItem;
+import com.lingsu.health.service.IngredientInteractionService;
 import com.lingsu.health.service.KnowledgeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,9 @@ public class KnowledgeController {
     
     @Autowired
     private KnowledgeService knowledgeService;
+    
+    @Autowired
+    private IngredientInteractionService interactionService;
     
     /**
      * 搜索知识库
@@ -100,5 +105,29 @@ public class KnowledgeController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
+    }
+    
+    /**
+     * 获取所有相生相克关系
+     */
+    @GetMapping("/interactions")
+    public List<IngredientInteraction> getAllInteractions() {
+        return interactionService.findAll();
+    }
+    
+    /**
+     * 根据食材/药材ID查询相关的相生相克关系
+     */
+    @GetMapping("/interactions/item/{itemId}")
+    public List<IngredientInteraction> getInteractionsByItemId(@PathVariable Long itemId) {
+        return interactionService.findByItemId(itemId);
+    }
+    
+    /**
+     * 根据食材/药材名称查询相关的相生相克关系
+     */
+    @GetMapping("/interactions/name/{itemName}")
+    public List<IngredientInteraction> getInteractionsByItemName(@PathVariable String itemName) {
+        return interactionService.findByItemName(itemName);
     }
 }

@@ -1,149 +1,203 @@
-﻿<template>
-  <div class="assistant-container">
-    <!-- 头部 -->
-    <div class="header">
+<template>
+  <div class="assistant-container" :class="{ 'dark-theme': isDark }">
+    <!-- 头部导航 -->
+    <header class="glass-header">
       <div class="header-content">
-        <button @click="goHome" class="back-btn-header">
-          <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="nav-btn" @click="goHome">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
           <span>返回首页</span>
         </button>
-        <div class="title-section">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V19C3 20.1 3.9 21 5 21H11V19H5V3H13V9H21ZM14 15.5L22.5 7L21 5.5L14 12.5L10.5 9L9 10.5L14 15.5Z"/>
+        
+        <div class="header-title">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7V5.73C9.4 5.39 9 4.74 9 4a2 2 0 0 1 2-2z"/>
+              <path d="M8 11h8"/>
+              <path d="M9 16h6"/>
             </svg>
           </div>
-          <div>
+          <div class="title-text">
             <h1>灵素小助手</h1>
-            <p>专业的中医健康咨询，随时为您答疑解惑</p>
+            <span class="status-badge">
+              <span class="status-dot"></span>
+              在线
+            </span>
           </div>
+        </div>
+        
+        <div class="header-actions">
+          <button class="action-btn" @click="toggleTheme" :title="isDark ? '切换亮色模式' : '切换深色模式'">
+            <svg v-if="isDark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <button class="action-btn" @click="clearHistory" title="清空对话">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+          </button>
         </div>
       </div>
-    </div>
+    </header>
 
-    <!-- 聊天区域 -->
-    <div class="chat-area" ref="chatArea">
-      <div class="messages-container">
-        <!-- 欢迎消息 -->
-        <div class="message assistant-message" v-if="messages.length === 0">
-          <div class="message-avatar">
-            <div class="avatar assistant-avatar">AI</div>
-          </div>
-          <div class="message-content">
-            <div class="message-bubble">
-              <p>您好，我叫灵素，是您的AI健康顾问</p>
-              <p>您可以向我咨询：</p>
-              <ul>
-                <li>🌿 中医体质调理建议</li>
-                <li>🍃 日常养生保健方法</li>
-                <li>🥗 饮食营养搭配指导</li>
-                <li>💤 睡眠质量改善建议</li>
-                <li>🧘 情绪调节和压力管理</li>
-              </ul>
-              <p>请随时向我提问，我会为您提供专业的建议！</p>
-            </div>
-            <div class="message-time">{{ formatTime(new Date()) }}</div>
-          </div>
-        </div>
-
-        <!-- 聊天消息 -->
-        <div 
-          v-for="(message, index) in messages" 
-          :key="index" 
-          class="message" 
-          :class="message.type + '-message'"
-        >
-          <div class="message-avatar" v-if="message.type === 'assistant'">
-            <div class="avatar assistant-avatar">AI</div>
-          </div>
-          <div class="message-content">
-            <div class="message-bubble" :class="message.type + '-bubble'">
-              <div v-if="message.type === 'user'" class="user-question">
-                {{ message.content }}
+    <!-- 聊天主区域 -->
+    <main class="chat-main" ref="chatArea">
+      <div class="chat-content">
+        <!-- 欢迎卡片 -->
+        <transition name="fade-slide-up" appear>
+          <div class="welcome-card" v-if="messages.length === 0">
+            <div class="welcome-header">
+              <div class="welcome-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm0-14a6 6 0 1 0 6 6 6 6 0 0 0-6-6zm0 10a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/>
+                </svg>
               </div>
-              <div v-else class="assistant-answer">
-                <div class="answer-text" v-html="formatAnswer(message.content)"></div>
-                <div class="sources" v-if="message.sources && message.sources.length > 0">
-                  <div class="sources-label">信息来源：</div>
-                  <div class="sources-list">
-                    <span v-for="source in message.sources" :key="source" class="source-tag">
-                      {{ source }}
-                    </span>
-                  </div>
+              <h2>您好，我是您的AI健康顾问</h2>
+              <p>基于中医理论与现代医学，为您提供专业的健康咨询服务</p>
+            </div>
+            
+            <div class="capabilities-grid">
+            <div 
+              class="capability-item" 
+              v-for="(cap, index) in capabilities" 
+              :key="index"
+              @click="selectCapability(cap.text)"
+              style="cursor: pointer;"
+            >
+              <div class="cap-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path :d="cap.icon"/>
+                </svg>
+              </div>
+              <span>{{ cap.text }}</span>
+            </div>
+          </div>
+          </div>
+        </transition>
+
+        <!-- 消息列表 -->
+        <transition-group name="message-fade" tag="div" class="messages-list">
+          <div 
+            v-for="(msg, index) in messages" 
+            :key="index"
+            class="message-row"
+            :class="msg.type"
+          >
+            <div class="avatar-container">
+              <div class="avatar" :class="msg.type">
+                <svg v-if="msg.type === 'assistant'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7V5.73C9.4 5.39 9 4.74 9 4a2 2 0 0 1 2-2z"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div class="message-content-wrapper">
+              <div class="message-bubble">
+                <div v-if="msg.type === 'assistant'" class="markdown-body" v-html="formatAnswer(msg.content)"></div>
+                <div v-else>{{ msg.content }}</div>
+              </div>
+              
+              <div class="message-meta">
+                <span class="time">{{ formatTime(msg.timestamp) }}</span>
+                <div v-if="msg.sources && msg.sources.length" class="sources-tag">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  参考来源
+                </div>
+              </div>
+              
+              <div v-if="msg.sources && msg.sources.length" class="sources-panel">
+                <div class="sources-title">参考资料：</div>
+                <div class="source-item" v-for="(source, sIdx) in msg.sources" :key="sIdx">
+                  {{ source }}
                 </div>
               </div>
             </div>
-            <div class="message-time">{{ formatTime(message.timestamp) }}</div>
           </div>
-          <div class="message-avatar" v-if="message.type === 'user'">
-            <div class="avatar user-avatar">我</div>
-          </div>
-        </div>
+        </transition-group>
 
-        <!-- 加载指示器 -->
-        <div v-if="isLoading" class="message assistant-message">
-          <div class="message-avatar">
-            <div class="avatar assistant-avatar">AI</div>
-          </div>
-          <div class="message-content">
-            <div class="message-bubble">
-              <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+        <!-- 加载状态 -->
+        <div v-if="isLoading" class="message-row assistant loading">
+          <div class="avatar-container">
+            <div class="avatar assistant">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                 <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7V5.73C9.4 5.39 9 4.74 9 4a2 2 0 0 1 2-2z"/>
+              </svg>
             </div>
+          </div>
+          <div class="message-content-wrapper">
+            <div class="message-bubble typing">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <div class="thinking-text">灵素正在思考中...</div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <!-- 输入区域 -->
-    <div class="input-area">
-      <div class="input-container">
-        <div class="input-wrapper">
+    <!-- 底部输入区 -->
+    <footer class="input-footer">
+      <div class="input-container-glass">
+        <!-- 快速提问标签 -->
+        <div class="quick-tags-wrapper">
+          <div 
+            v-for="(q, index) in quickQuestions" 
+            :key="index"
+            class="quick-tag"
+            @click="selectQuickQuestion(q)"
+          >
+            {{ q }}
+          </div>
+        </div>
+        
+        <!-- 输入框 -->
+        <div class="input-box-wrapper">
           <textarea
             v-model="currentQuestion"
             @keydown="handleKeyDown"
-            placeholder="请输入您的健康问题..."
-            class="question-input"
+            placeholder="请详细描述您的健康问题..."
+            class="main-textarea"
             rows="1"
             ref="textareaRef"
           ></textarea>
+          
           <button 
-            @click="sendQuestion" 
+            class="send-btn"
+            :class="{ 'is-active': currentQuestion.trim() }"
+            @click="sendQuestion"
             :disabled="!currentQuestion.trim() || isLoading"
-            class="send-button"
           >
-            <svg v-if="!isLoading" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
-            <div v-else class="loading-spinner"></div>
-          </button>
-        </div>
-        <div class="quick-questions">
-          <span class="quick-label">快速提问：</span>
-          <button 
-            v-for="quickQ in quickQuestions" 
-            :key="quickQ"
-            @click="selectQuickQuestion(quickQ)"
-            class="quick-question-btn"
-            :disabled="isLoading"
-          >
-            {{ quickQ }}
           </button>
         </div>
       </div>
-    </div>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { askAssistant } from '../services/api';
+import { askAssistant, getUserThemePreference, saveUserThemePreference } from '../services/api';
+
+defineOptions({ name: 'AssistantView' });
 
 const router = useRouter();
 
@@ -160,20 +214,66 @@ const isLoading = ref(false);
 const chatArea = ref<HTMLElement>();
 const textareaRef = ref<HTMLTextAreaElement>();
 
-const quickQuestions = [
-  '我经常失眠怎么办？',
-  '如何调理脾胃虚弱？',
-  '秋季养生要注意什么？',
-  '熬夜后如何快速恢复？'
+// 主题状态，默认为浅色
+const isDark = ref(false);
+
+// 切换主题并保存到后端
+const toggleTheme = async () => {
+  isDark.value = !isDark.value;
+  const theme = isDark.value ? 'dark' : 'light';
+  
+  try {
+    await saveUserThemePreference(theme);
+    console.log('主题偏好已保存:', theme);
+  } catch (error) {
+    console.error('保存主题偏好失败:', error);
+    // 即使保存失败，也保持UI的切换效果
+  }
+};
+
+// 页面加载时获取用户的主题偏好
+onMounted(async () => {
+  try {
+    const response = await getUserThemePreference();
+    if (response.success && response.theme) {
+      isDark.value = response.theme === 'dark';
+      console.log('已加载用户主题偏好:', response.theme);
+    }
+  } catch (error) {
+    console.error('获取主题偏好失败:', error);
+    // 失败时使用默认浅色主题
+  }
+});
+
+// 功能特性列表
+const capabilities = [
+  { text: '中医体质调理', icon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z' },
+  { text: '日常养生保健', icon: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 14s1.5 2 4 2 4-2 4-2' },
+  { text: '饮食营养搭配', icon: 'M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z M6 1v3 M10 1v3 M14 1v3' },
+  { text: '睡眠改善建议', icon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z' }
 ];
 
-const goHome = () => {
-  router.push('/dashboard');
+const quickQuestions = [
+  '经常失眠多梦怎么调理？',
+  '脾胃虚弱有哪些食疗方案？',
+  '如何缓解久坐导致的腰酸？',
+  '流感季节如何预防感冒？'
+];
+
+const goHome = () => router.push('/dashboard');
+
+const clearHistory = () => {
+  if (confirm('确定要清空当前对话记录吗？')) {
+    messages.value = [];
+  }
 };
 
 onMounted(() => {
-  // 自动调整textarea高度
   adjustTextareaHeight();
+});
+
+watch(currentQuestion, () => {
+  nextTick(adjustTextareaHeight);
 });
 
 async function sendQuestion() {
@@ -181,7 +281,6 @@ async function sendQuestion() {
 
   const question = currentQuestion.value.trim();
   
-  // 添加用户消息
   messages.value.push({
     type: 'user',
     content: question,
@@ -191,26 +290,35 @@ async function sendQuestion() {
   currentQuestion.value = '';
   isLoading.value = true;
   
-  // 滚动到底部
   await nextTick();
   scrollToBottom();
 
+  // 重置输入框高度
+  if (textareaRef.value) textareaRef.value.style.height = 'auto';
+
   try {
-    // 调用API
-    const response = await askAssistant({ q: question });
+    const history = messages.value
+      .slice(0, -1)
+      .slice(-8)
+      .map(item => ({
+        role: item.type === 'user' ? 'user' : 'assistant',
+        content: item.content
+      }));
+
+    const response = await askAssistant(question, history);
     
-    // 添加助手回复
     messages.value.push({
       type: 'assistant',
-      content: response.answer,
+      content: response.answer || '抱歉，我暂时无法回答您的问题。',
       timestamp: new Date(),
-      sources: response.sources
+      sources: response.sources || []
     });
+
   } catch (error) {
     console.error('发送问题失败:', error);
     messages.value.push({
       type: 'assistant',
-      content: '抱歉，我暂时无法回答您的问题。请检查网络连接后重试。',
+      content: '抱歉，遇到了一些连接问题。请稍后再试。',
       timestamp: new Date(),
       sources: ['系统错误']
     });
@@ -218,13 +326,18 @@ async function sendQuestion() {
     isLoading.value = false;
     await nextTick();
     scrollToBottom();
-    adjustTextareaHeight();
   }
 }
 
 function selectQuickQuestion(question: string) {
   currentQuestion.value = question;
-  sendQuestion();
+  // 可选：直接发送
+  // sendQuestion(); 
+}
+
+function selectCapability(text: string) {
+  currentQuestion.value = `请针对"${text}"给我一些建议`;
+  // sendQuestion(); // Optional: send immediately
 }
 
 function handleKeyDown(event: KeyboardEvent) {
@@ -232,23 +345,22 @@ function handleKeyDown(event: KeyboardEvent) {
     event.preventDefault();
     sendQuestion();
   }
-  
-  // 自动调整高度
-  nextTick(() => {
-    adjustTextareaHeight();
-  });
 }
 
 function adjustTextareaHeight() {
   if (textareaRef.value) {
     textareaRef.value.style.height = 'auto';
-    textareaRef.value.style.height = Math.min(textareaRef.value.scrollHeight, 120) + 'px';
+    const height = Math.min(textareaRef.value.scrollHeight, 120);
+    textareaRef.value.style.height = height > 40 ? height + 'px' : '40px';
   }
 }
 
 function scrollToBottom() {
   if (chatArea.value) {
-    chatArea.value.scrollTop = chatArea.value.scrollHeight;
+    chatArea.value.scrollTo({
+      top: chatArea.value.scrollHeight,
+      behavior: 'smooth'
+    });
   }
 }
 
@@ -260,506 +372,624 @@ function formatTime(date: Date): string {
 }
 
 function formatAnswer(text: string): string {
-  // 简单的文本格式化，将换行转换为<br>
-  return text.replace(/\n/g, '<br>');
+  // 简单的 Markdown 格式处理
+  const formatted = text
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code>$1</code>');
+  return formatted;
 }
 </script>
 
 <style scoped>
+/* 
+  Modern Design System - Emerald Theme
+  Based on Assessment module style
+  With Dark Mode Support via CSS Variables
+*/
+
 .assistant-container {
+  /* Default Light Theme Variables */
+  --bg-gradient-start: #f8fafc;
+  --bg-gradient-end: #f1f5f9;
+  --glass-header-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(226, 232, 240, 0.8);
+  --text-main: #0f172a;
+  --text-sub: #64748b;
+  --text-placeholder: #94a3b8;
+  --card-bg: #ffffff;
+  --card-border: #f1f5f9;
+  --card-shadow: 0 4px 20px rgba(148, 163, 184, 0.05);
+  --input-bg: #ffffff;
+  --input-border: #e2e8f0;
+  --quick-tag-bg: #ffffff;
+  --quick-tag-text: #475569;
+  --quick-tag-border: #e2e8f0;
+  --assistant-bubble-bg: #ffffff;
+  --assistant-bubble-text: #334155;
+  --assistant-bubble-border: #f1f5f9;
+  --btn-hover-bg: #f1f5f9;
+  --code-bg: #f1f5f9;
+  
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
-  position: relative; /* 使左上角按钮锚定到本容器 */
-}
-
-/* 左上角返回按钮 */
-.back-top-left {
-  position: fixed;
-  top: 10px;
-  left: 20px;
-  z-index: 9999;
-}
-
-/* 按钮样式 - 现代毛玻璃效果 */
-.back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 14px;
-  border-radius: 25px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  background-color: var(--bg-gradient-start);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%);
   position: relative;
   overflow: hidden;
-  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.back-btn::before {
-  content: '';
+/* Dark Theme Overrides */
+.assistant-container.dark-theme {
+  --bg-gradient-start: #0f172a;
+  --bg-gradient-end: #1e293b;
+  --glass-header-bg: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(51, 65, 85, 0.5);
+  --text-main: #f1f5f9;
+  --text-sub: #94a3b8;
+  --text-placeholder: #64748b;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --quick-tag-bg: #1e293b;
+  --quick-tag-text: #cbd5e1;
+  --quick-tag-border: #334155;
+  --assistant-bubble-bg: #1e293b;
+  --assistant-bubble-text: #e2e8f0;
+  --assistant-bubble-border: #334155;
+  --btn-hover-bg: #334155;
+  --code-bg: #0f172a;
+}
+
+/* Glass Header */
+.glass-header {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.back-btn:hover::before {
-  opacity: 1;
-}
-
-.back-btn:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.95);
-}
-
-.back-btn:active {
-  transform: translateY(0) translateX(0);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.back-icon {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.3s ease;
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
-.back-btn:hover .back-icon {
-  transform: translateX(-3px);
-}
-
-.back-btn span {
-  position: relative;
-  z-index: 1;
-}
-
-/* 头部样式 */
-.header {
-  background: white;
-  border-bottom: 1px solid #e1e8ed;
-  padding: 20px 30px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  right: 0;
+  height: 64px;
+  background: var(--glass-header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .header-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.header-content .back-btn-header {
-  position: absolute;
-  left: 0;
-}
-
-.title-section {
+.nav-btn {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 99px;
+  color: var(--text-sub);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+.nav-btn:hover {
+  background: var(--btn-hover-bg);
+  color: var(--text-main);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
-.icon svg {
-  width: 24px;
-  height: 24px;
+.logo-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
-.title-section h1 {
-  margin: 0;
-  font-size: 24px;
+.title-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.title-text h1 {
+  font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.2;
 }
 
-.title-section p {
-  margin: 4px 0 0 0;
-  color: #7f8c8d;
-  font-size: 14px;
-}
-
-.status-text {
-  font-size: 12px;
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #10b981;
   font-weight: 500;
 }
 
-/* Header中的返回按钮 */
-.back-btn-header {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 14px;
-  border-radius: 25px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--text-sub);
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  white-space: nowrap;
+  transition: all 0.2s;
 }
 
-.back-btn-header:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.95);
+.action-btn:hover {
+  background: var(--btn-hover-bg);
+  color: #ef4444; /* Keep red for clear history, maybe dynamic for theme toggle? */
+}
+/* Theme toggle shouldn't be red on hover */
+.action-btn:first-child:hover {
+  color: #10b981;
 }
 
-.back-btn-header .back-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-/* 聊天区域 */
-.chat-area {
+/* Chat Main Area */
+.chat-main {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 84px 20px 180px; /* Top padding for header, bottom for footer */
+  scroll-behavior: smooth;
 }
 
-.messages-container {
+.chat-content {
   max-width: 800px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
 }
 
-.message {
+/* Welcome Card */
+.welcome-card {
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 40px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
+  transition: all 0.3s ease;
+}
+
+.welcome-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1); /* transparent emerald */
+  border-radius: 20px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.welcome-card h2 {
+  font-size: 24px;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.welcome-card p {
+  color: var(--text-sub);
+  margin-bottom: 32px;
+}
+
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.capability-item {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  animation: fadeInUp 0.3s ease-out;
+  padding: 16px;
+  background: var(--bg-gradient-end);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-sub);
+  transition: all 0.2s;
 }
 
-.user-message {
+.capability-item:hover {
+  background: var(--card-bg);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+  color: var(--text-main);
+}
+
+.cap-icon {
+  color: #10b981;
+}
+
+.cap-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Message Styles */
+.message-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  opacity: 1;
+}
+
+.message-row.user {
   flex-direction: row-reverse;
-}
-
-.message-avatar {
-  flex-shrink: 0;
 }
 
 .avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.avatar.assistant {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: #10b981;
+}
+
+.avatar.user {
+  background: #10b981;
   color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
-.assistant-avatar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.avatar svg {
+  width: 20px;
+  height: 20px;
 }
 
-.user-avatar {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-  color: #8b4513;
-}
-
-.message-content {
-  flex: 1;
+.message-content-wrapper {
   max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-row.user .message-content-wrapper {
+  align-items: flex-end;
 }
 
 .message-bubble {
   padding: 16px 20px;
-  border-radius: 18px;
-  margin-bottom: 4px;
-  word-wrap: break-word;
-}
-
-.assistant-bubble {
-  background: white;
-  border: 1px solid #e1e8ed;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.user-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  margin-left: auto;
-}
-
-.user-question {
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-.assistant-answer {
+  border-radius: 20px;
   font-size: 15px;
   line-height: 1.6;
-  color: #2c3e50;
+  position: relative;
 }
 
-.answer-text {
-  margin-bottom: 12px;
+.message-row.assistant .message-bubble {
+  background: var(--assistant-bubble-bg);
+  color: var(--assistant-bubble-text);
+  border-top-left-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--assistant-bubble-border);
 }
 
-.sources {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 12px;
+.message-row.user .message-bubble {
+  background: #10b981;
+  color: white;
+  border-top-right-radius: 4px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
-.sources-label {
-  font-size: 12px;
-  color: #7f8c8d;
-  margin-bottom: 6px;
-}
-
-.sources-list {
+.message-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.source-tag {
-  background: #f8f9fa;
-  color: #6c757d;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  border: 1px solid #e9ecef;
-}
-
-.message-time {
-  font-size: 11px;
-  color: #95a5a6;
-  text-align: right;
-}
-
-.user-message .message-time {
-  text-align: left;
-}
-
-/* 打字指示器 */
-.typing-indicator {
-  display: flex;
-  gap: 4px;
   align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-placeholder);
+  padding: 0 4px;
 }
 
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
+.sources-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.sources-panel {
+  margin-top: 8px;
+  background: var(--bg-gradient-end);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  font-size: 13px;
+}
+
+.sources-title {
+  color: var(--text-sub);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.source-item {
+  color: var(--text-main);
+  margin-bottom: 4px;
+  padding-left: 12px;
+  position: relative;
+}
+
+.source-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: #bdc3c7;
-  animation: typing 1.4s infinite ease-in-out;
+  background: var(--text-placeholder);
 }
 
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes typing {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+/* Loading State */
+.message-bubble.typing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 24px;
 }
 
-/* 输入区域 */
-.input-area {
-  background: white;
-  border-top: 1px solid #e1e8ed;
-  padding: 20px;
+.dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-placeholder);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
 }
 
-.input-container {
+.dot:nth-child(1) { animation-delay: -0.32s; }
+.dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.thinking-text {
+  font-size: 12px;
+  color: var(--text-placeholder);
+  margin-top: 4px;
+  margin-left: 4px;
+}
+
+/* Input Footer */
+.input-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  /* Use a gradient mask or background that matches theme */
+  background: linear-gradient(to top, var(--bg-gradient-start) 80%, rgba(0,0,0,0) 100%);
+  z-index: 100;
+}
+
+.input-container-glass {
   max-width: 800px;
   margin: 0 auto;
-}
-
-.input-wrapper {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-tags-wrapper {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.quick-tag {
+  white-space: nowrap;
+  padding: 8px 16px;
+  background: var(--quick-tag-bg);
+  border: 1px solid var(--quick-tag-border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--quick-tag-text);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.quick-tag:hover {
+  border-color: #10b981;
+  color: #10b981;
+  transform: translateY(-1px);
+}
+
+.input-box-wrapper {
+  background: var(--input-bg);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--input-border);
+  display: flex;
   align-items: flex-end;
-  background: #f8f9fa;
-  border: 2px solid #e9ecef;
-  border-radius: 24px;
-  padding: 12px 16px;
-  transition: border-color 0.2s ease;
+  gap: 12px;
+  transition: all 0.2s;
 }
 
-.input-wrapper:focus-within {
-  border-color: #667eea;
+.input-box-wrapper:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 4px 24px rgba(16, 185, 129, 0.1);
 }
 
-.question-input {
+.main-textarea {
   flex: 1;
   border: none;
   background: transparent;
-  resize: none;
-  outline: none;
+  padding: 12px;
   font-size: 15px;
-  line-height: 1.5;
-  min-height: 24px;
+  color: var(--text-main);
+  resize: none;
   max-height: 120px;
-  font-family: inherit;
+  outline: none;
+  line-height: 1.5;
 }
 
-.question-input::placeholder {
-  color: #adb5bd;
+.main-textarea::placeholder {
+  color: var(--text-placeholder);
 }
 
-.send-button {
-  width: 36px;
-  height: 36px;
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   border: none;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  cursor: pointer;
+  background: var(--btn-hover-bg);
+  color: var(--text-placeholder);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.send-button:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
-.send-button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+  transition: all 0.2s;
 }
 
-.send-button svg {
-  width: 18px;
-  height: 18px;
-}
-
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.quick-questions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.quick-label {
-  font-size: 12px;
-  color: #7f8c8d;
-  white-space: nowrap;
-}
-
-.quick-question-btn {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 16px;
-  padding: 6px 12px;
-  font-size: 12px;
-  color: #6c757d;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.quick-question-btn:hover:not(:disabled) {
-  background: #667eea;
+.send-btn.is-active {
+  background: #10b981;
   color: white;
-  border-color: #667eea;
+  cursor: pointer;
 }
 
-.quick-question-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.send-btn.is-active:hover {
+  background: #059669;
+  transform: scale(1.05);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.send-btn svg {
+  width: 20px;
+  height: 20px;
+  transform: rotate(45deg); /* Adjust icon orientation if needed */
+  margin-right: 2px;
+  margin-bottom: 2px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .header {
-    padding: 15px 20px 15px 180px; /* 保持左侧padding给按钮留空间 */
-  }
-  
+/* Animations */
+.fade-slide-up-enter-active,
+.fade-slide-up-leave-active {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.message-fade-enter-active {
+  transition: all 0.4s ease-out;
+}
+
+.message-fade-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Markdown Styles Adaptation */
+:deep(.markdown-body) {
+  color: var(--assistant-bubble-text);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+:deep(.markdown-body code) {
+  background-color: var(--code-bg);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* Mobile Adaptation */
+@media (max-width: 640px) {
   .header-content {
-    flex-direction: column;
-    gap: 15px;
-    align-items: flex-start;
+    padding: 0 16px;
   }
   
-  .chat-area {
-    padding: 15px;
+  .chat-main {
+    padding: 72px 16px 160px;
   }
   
-  .message-content {
+  .welcome-card {
+    padding: 24px;
+  }
+  
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .message-content-wrapper {
     max-width: 85%;
   }
   
-  .input-area {
-    padding: 15px;
+  .input-footer {
+    padding: 16px;
   }
   
-  .quick-questions {
-    justify-content: flex-start;
+  .nav-btn span {
+    display: none;
   }
 }
 </style>

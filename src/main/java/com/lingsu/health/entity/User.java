@@ -14,6 +14,8 @@ public class User {
     private String username;
     @TableField("password_hash")
     private String passwordHash;
+    @TableField("theme_preference")
+    private String themePreference; // 主题偏好: 'light' 或 'dark'
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -25,4 +27,6 @@ public class User {
     public void setUsername(String username) { this.username = username; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public String getThemePreference() { return themePreference; }
+    public void setThemePreference(String themePreference) { this.themePreference = themePreference; }
 }

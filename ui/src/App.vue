@@ -1,8 +1,10 @@
 <template>
+  <MascotWidget />
   <router-view />
 </template>
 
 <script setup lang="ts">
+import MascotWidget from './components/MascotWidget.vue';
 </script>
 
 <style>

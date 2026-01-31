@@ -1,203 +1,264 @@
-﻿<template>
-  <div class="profile-container">
-    <!-- 左上角返回首页 -->
+<template>
+  <div class="profile-page">
+    <!-- 动态背景元素 -->
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+
+    <!-- 左上角返回按钮 -->
     <button class="back-btn back-top-left" @click="goHome">
-      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
+      <div class="icon-wrapper">
+        <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </div>
       <span>返回首页</span>
     </button>
-    <div class="profile-header">
-      <h2>编辑个人资料</h2>
-      <p class="subtitle">完善您的个人信息，获得更精准的养生建议</p>
-    </div>
 
-    <div class="profile-form-container">
-      <form @submit.prevent="saveProfile" class="profile-form">
-        <!-- 基本信息 -->
-        <div class="form-section">
-          <h3 class="section-title">
-            基本信息
-          </h3>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="username">用户名</label>
-              <input
-                id="username"
-                v-model="profile.username"
-                type="text"
-                placeholder="请输入用户名"
-                required
-                :disabled="loading"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="email">邮箱</label>
-              <input
-                id="email"
-                v-model="profile.email"
-                type="email"
-                placeholder="请输入邮箱地址"
-                :disabled="loading"
-              />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="phone">手机号</label>
-              <input
-                id="phone"
-                v-model="profile.phone"
-                type="tel"
-                placeholder="请输入手机号"
-                :disabled="loading"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="gender">性别</label>
-              <select id="gender" v-model="profile.gender" :disabled="loading">
-                <option value="" disabled>请选择性别</option>
-                <option value="male">男</option>
-                <option value="female">女</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="birthDate">出生日期</label>
-              <input
-                id="birthDate"
-                v-model="profile.birthDate"
-                type="date"
-                :disabled="loading"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="age">年龄</label>
-              <input
-                id="age"
-                v-model.number="profile.age"
-                type="number"
-                placeholder="自动计算"
-                readonly
-                :disabled="loading"
-              />
-            </div>
-          </div>
+    <div class="content-wrapper">
+      <div class="page-header">
+        <div class="header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
         </div>
+        <h2>个人资料</h2>
+        <p class="subtitle">完善信息，让 AI 为您提供更精准的健康建议</p>
+      </div>
 
-        <!-- 身体信息 -->
-        <div class="form-section">
-          <h3 class="section-title">
-            身体信息
-          </h3>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="height">身高 (cm)</label>
-              <input
-                id="height"
-                v-model.number="profile.height"
-                type="number"
-                placeholder="请输入身高"
-                min="100"
-                max="250"
-                :disabled="loading"
-              />
-            </div>
+      <div class="card-container">
+        <form @submit.prevent="saveProfile" class="profile-form">
+          <!-- 基本信息 -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <span class="title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              基本信息
+            </h3>
             
-            <div class="form-group">
-              <label for="weight">体重 (kg)</label>
-              <input
-                id="weight"
-                v-model.number="profile.weight"
-                type="number"
-                placeholder="请输入体重"
-                min="30"
-                max="200"
-                step="0.1"
-                :disabled="loading"
-              />
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="username">用户名</label>
+                <div class="input-wrapper">
+                  <input
+                    id="username"
+                    v-model="profile.username"
+                    type="text"
+                    placeholder="请输入用户名"
+                    required
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="email">邮箱</label>
+                <div class="input-wrapper">
+                  <input
+                    id="email"
+                    v-model="profile.email"
+                    type="email"
+                    placeholder="请输入邮箱地址"
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="phone">手机号</label>
+                <div class="input-wrapper">
+                  <input
+                    id="phone"
+                    v-model="profile.phone"
+                    type="tel"
+                    placeholder="请输入手机号"
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="gender">性别</label>
+                <div class="input-wrapper">
+                  <select id="gender" v-model="profile.gender" :disabled="loading" class="modern-input modern-select">
+                    <option value="" disabled>请选择性别</option>
+                    <option value="male">男</option>
+                    <option value="female">女</option>
+                  </select>
+                  <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="birthDate">出生日期</label>
+                <div class="input-wrapper">
+                  <input
+                    id="birthDate"
+                    v-model="profile.birthDate"
+                    type="date"
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="age">年龄</label>
+                <div class="input-wrapper">
+                  <input
+                    id="age"
+                    v-model.number="profile.age"
+                    type="number"
+                    placeholder="自动计算"
+                    readonly
+                    :disabled="loading"
+                    class="modern-input readonly"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="bmi">BMI指数</label>
-              <input
-                id="bmi"
-                v-model="profile.bmi"
-                type="text"
-                placeholder="自动计算"
-                readonly
-                :disabled="loading"
-              />
+          <!-- 身体信息 -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <span class="title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </span>
+              身体信息
+            </h3>
+            
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="height">身高 (cm)</label>
+                <div class="input-wrapper">
+                  <input
+                    id="height"
+                    v-model.number="profile.height"
+                    type="number"
+                    placeholder="请输入身高"
+                    min="100"
+                    max="250"
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="weight">体重 (kg)</label>
+                <div class="input-wrapper">
+                  <input
+                    id="weight"
+                    v-model.number="profile.weight"
+                    type="number"
+                    placeholder="请输入体重"
+                    min="30"
+                    max="200"
+                    step="0.1"
+                    :disabled="loading"
+                    class="modern-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="bmi">BMI指数</label>
+                <div class="input-wrapper">
+                  <input
+                    id="bmi"
+                    v-model="profile.bmi"
+                    type="text"
+                    placeholder="自动计算"
+                    readonly
+                    :disabled="loading"
+                    class="modern-input readonly"
+                  />
+                  <div v-if="profile.bmi" class="bmi-badge" :class="getBmiClass(Number(profile.bmi))">
+                    {{ getBmiLabel(Number(profile.bmi)) }}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 健康信息 -->
-        <div class="form-section">
-          <h3 class="section-title">
-            健康信息
-          </h3>
-          
-          <div class="form-group full-width">
-            <label for="allergies">过敏史</label>
-            <textarea
-              id="allergies"
-              v-model="profile.allergies"
-              placeholder="请输入过敏史，如：花粉过敏、海鲜过敏等"
-              rows="3"
-              :disabled="loading"
-            ></textarea>
+          <!-- 健康信息 -->
+          <div class="form-section">
+            <h3 class="section-title">
+              <span class="title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              健康信息
+            </h3>
+            
+            <div class="form-group full-width">
+              <label for="allergies">过敏史</label>
+              <div class="input-wrapper">
+                <textarea
+                  id="allergies"
+                  v-model="profile.allergies"
+                  placeholder="请输入过敏史，如：花粉过敏、海鲜过敏等"
+                  rows="2"
+                  :disabled="loading"
+                  class="modern-textarea"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="medicalHistory">既往病史</label>
+              <div class="input-wrapper">
+                <textarea
+                  id="medicalHistory"
+                  v-model="profile.medicalHistory"
+                  placeholder="请输入既往病史"
+                  rows="2"
+                  :disabled="loading"
+                  class="modern-textarea"
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="medications">正在服用的药物</label>
+              <div class="input-wrapper">
+                <textarea
+                  id="medications"
+                  v-model="profile.medications"
+                  placeholder="请输入正在服用的药物"
+                  rows="2"
+                  :disabled="loading"
+                  class="modern-textarea"
+                ></textarea>
+              </div>
+            </div>
           </div>
 
-          <div class="form-group full-width">
-            <label for="medicalHistory">既往病史</label>
-            <textarea
-              id="medicalHistory"
-              v-model="profile.medicalHistory"
-              placeholder="请输入既往病史"
-              rows="3"
-              :disabled="loading"
-            ></textarea>
+          <!-- 消息提示 -->
+          <div v-if="message" class="message" :class="isSuccess ? 'success-message' : 'error-message'">
+            <svg v-if="isSuccess" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ message }}
           </div>
 
-          <div class="form-group full-width">
-            <label for="medications">正在服用的药物</label>
-            <textarea
-              id="medications"
-              v-model="profile.medications"
-              placeholder="请输入正在服用的药物"
-              rows="3"
-              :disabled="loading"
-            ></textarea>
+          <!-- 按钮组 -->
+          <div class="form-actions">
+            <button type="button" @click="goBack" class="cancel-btn" :disabled="loading">
+              返回
+            </button>
+            <button type="submit" class="submit-btn" :disabled="loading">
+              <span v-if="loading" class="spinner"></span>
+              {{ loading ? '保存中...' : '保存资料' }}
+            </button>
           </div>
-        </div>
-
-        <!-- 按钮组 -->
-        <div class="form-actions">
-          <button type="button" @click="goBack" class="btn btn-secondary" :disabled="loading">
-            返回
-          </button>
-          <button type="submit" class="btn btn-primary" :disabled="loading">
-            <span v-if="loading" class="loading-spinner"></span>
-            {{ loading ? '保存中...' : '保存资料' }}
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- 消息提示 -->
-    <div v-if="message" class="message" :class="{ 'success': isSuccess, 'error': !isSuccess }">
-      {{ message }}
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -206,6 +267,8 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getUserProfile, updateUserProfile } from '../services/api';
+
+defineOptions({ name: 'ProfileView' });
 
 const router = useRouter();
 
@@ -262,6 +325,21 @@ watch(bmiValue, (newBmi) => {
   profile.value.bmi = newBmi;
 });
 
+// BMI Helper functions
+const getBmiClass = (bmi: number) => {
+  if (bmi < 18.5) return 'bmi-underweight';
+  if (bmi < 24) return 'bmi-normal';
+  if (bmi < 28) return 'bmi-overweight';
+  return 'bmi-obese';
+};
+
+const getBmiLabel = (bmi: number) => {
+  if (bmi < 18.5) return '偏瘦';
+  if (bmi < 24) return '正常';
+  if (bmi < 28) return '偏胖';
+  return '肥胖';
+};
+
 // 页面加载时获取用户信息
 onMounted(async () => {
   await loadProfile();
@@ -281,7 +359,6 @@ async function loadProfile() {
     // 从后端API获取完整的用户资料
     try {
       const response = await getUserProfile();
-      console.log('API响应:', response); // 调试日志
       
       // 检查响应数据结构并合并
       if (response) {
@@ -296,8 +373,6 @@ async function loadProfile() {
         }
         
         if (userData) {
-          console.log('用户数据:', userData); // 调试日志
-          
           // 安全地合并数据，确保类型正确
           profile.value.username = userData.username || profile.value.username;
           profile.value.email = userData.email || '';
@@ -311,18 +386,14 @@ async function loadProfile() {
           profile.value.allergies = userData.allergies || '';
           profile.value.medicalHistory = userData.medicalHistory || '';
           profile.value.medications = userData.medications || '';
-          
-          console.log('合并后的profile:', profile.value); // 调试日志
         }
       }
     } catch (apiError) {
-      // 如果API调用失败，不显示错误消息，只是使用默认值
       console.warn('无法加载用户资料，使用默认值:', apiError);
     }
     
   } catch (error) {
     console.error('加载用户资料失败:', error);
-    // 不显示错误消息，允许用户继续编辑
   } finally {
     loading.value = false;
   }
@@ -361,12 +432,8 @@ async function saveProfile() {
       delete submitData.gender;
     }
     
-    console.log('提交的数据:', submitData); // 调试日志
-    
     // 调用后端API保存用户资料
-    const response = await updateUserProfile(submitData);
-    
-    console.log('保存响应:', response); // 调试日志
+    await updateUserProfile(submitData);
     
     // 更新localStorage中的用户名
     localStorage.setItem('username', profile.value.username);
@@ -375,12 +442,12 @@ async function saveProfile() {
     
     // 延迟返回
     setTimeout(() => {
-      goBack();
+      goHome();
     }, 1500);
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('保存用户资料失败:', error);
-    const errorMessage = error.response?.data?.error || error.message || '保存失败，请重试';
+    const errorMessage = error instanceof Error ? error.message : '保存失败，请重试';
     showMessage(errorMessage, false);
   } finally {
     loading.value = false;
@@ -410,328 +477,409 @@ function goBack() {
 </script>
 
 <style scoped>
-.profile-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 80px 20px 20px 20px; /* 增加顶部padding给按钮留空间 */
-  position: relative; /* 使左上角按钮锚定到本容器 */
+.profile-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #fff5e6 0%, #ffe4d1 100%);
+  width: 100%;
+  position: relative;
+  background-color: #f0fdf4; /* Emerald-50 */
+  overflow-x: hidden;
+  padding: 80px 20px 40px;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
-/* 左上角返回按钮 */
-.back-top-left {
-  position: fixed;
-  top: 10px;
-  left: 20px;
-  z-index: 9999;
+/* 动态背景图形 */
+.bg-shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  animation: float 20s infinite ease-in-out;
 }
 
-/* 按钮样式 - 现代毛玻璃效果 */
+.shape-1 {
+  width: 500px;
+  height: 500px;
+  background: rgba(16, 185, 129, 0.1);
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 400px;
+  height: 400px;
+  background: rgba(59, 130, 246, 0.1);
+  bottom: -50px;
+  right: -50px;
+  animation-delay: -5s;
+}
+
+.shape-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(245, 158, 11, 0.08);
+  top: 30%;
+  left: 50%;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+
+/* 返回按钮 */
 .back-btn {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 24px;
-  border-radius: 30px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
+  gap: 12px;
+  padding: 8px 16px;
+  border: none;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-radius: 99px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  position: relative;
-  overflow: hidden;
-}
-
-.back-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.back-btn:hover::before {
-  opacity: 1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .back-btn:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  background: white;
 }
 
-.back-btn:active {
-  transform: translateY(0) translateX(0);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+.back-btn span {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.icon-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
 }
 
 .back-icon {
   width: 18px;
   height: 18px;
-  transition: transform 0.3s ease;
-  position: relative;
-  z-index: 1;
 }
 
-.back-btn:hover .back-icon {
-  transform: translateX(-3px);
+/* 内容区域 */
+.content-wrapper {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.back-btn span {
-  position: relative;
-  z-index: 1;
-}
-.profile-header {
+.page-header {
   text-align: center;
   margin-bottom: 32px;
 }
 
-.profile-header h2 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
+.header-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.3);
+  transform: rotate(-5deg);
+}
+
+.header-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.page-header h2 {
   font-size: 28px;
-  font-weight: 600;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
-  color: #666;
-  font-size: 16px;
+  color: #64748b;
+  font-size: 15px;
   margin: 0;
 }
 
-.profile-form-container {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  margin-bottom: 24px;
+/* 卡片容器 */
+.card-container {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 .form-section {
   margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .form-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
   margin-bottom: 0;
 }
 
 .section-title {
   display: flex;
   align-items: center;
-  margin: 0 0 20px 0;
-  color: #2c3e50;
+  gap: 10px;
   font-size: 18px;
-  font-weight: 600;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e9ecef;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 24px;
 }
 
-.section-icon {
-  margin-right: 8px;
-  font-size: 20px;
-}
-
-.form-row {
+.title-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #ecfdf5;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+
+.title-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  margin-bottom: 20px;
 }
 
 .form-group {
-  flex: 1;
+  margin-bottom: 0;
 }
 
 .form-group.full-width {
-  width: 100%;
+  grid-column: span 2;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #2c3e50;
   font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 8px;
+  margin-left: 4px;
 }
 
-.form-group input,
-.form-group select,
-.form-group textarea {
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.modern-input,
+.modern-textarea {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e1e8ed;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: white;
-  box-sizing: border-box;
+  font-size: 15px;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
-  background: #f8f9fa;
-  cursor: not-allowed;
-}
-
-.form-group input[readonly] {
-  background: #f8f9fa;
-  color: #666;
-}
-
-.form-group textarea {
+.modern-textarea {
   resize: vertical;
   min-height: 80px;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e9ecef;
+.modern-input:focus,
+.modern-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
 }
 
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
+.modern-input.readonly {
+  background: #f1f5f9;
+  cursor: default;
+  border-color: #e2e8f0;
+}
+
+.modern-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 16px;
+  width: 20px;
+  height: 20px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.bmi-badge {
+  position: absolute;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bmi-underweight { background: #fee2e2; color: #ef4444; }
+.bmi-normal { background: #ecfdf5; color: #10b981; }
+.bmi-overweight { background: #ffedd5; color: #f97316; }
+.bmi-obese { background: #fef2f2; color: #dc2626; }
+
+/* 消息提示 */
+.message {
+  padding: 12px 16px;
+  border-radius: 12px;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0;
+  animation: slideIn 0.3s ease;
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+
+.success-message {
+  background: #ecfdf5;
+  color: #10b981;
+  border: 1px solid #a7f3d0;
+}
+
+.message svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 按钮组 */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.submit-btn {
+  padding: 12px 32px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
+  gap: 8px;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
 }
 
-.btn:disabled {
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+  filter: brightness(1.05);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
-  opacity: 0.6;
+  transform: none;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+.cancel-btn {
+  padding: 12px 24px;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  background: white;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+.cancel-btn:hover {
+  border-color: #cbd5e1;
+  color: #475569;
+  background: #f8fafc;
 }
 
-.btn-secondary {
-  background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-}
-
-.btn-icon {
-  margin-right: 6px;
-  font-size: 16px;
-}
-
-.loading-spinner {
+.spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 8px;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.message {
-  position: fixed;
-  top: 10px;
-  right: 20px;
-  padding: 16px 20px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 1000;
-  animation: slideIn 0.3s ease;
-  max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(100%); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.message.success {
-  background: rgba(46, 204, 113, 0.1);
-  color: #27ae60;
-  border: 1px solid rgba(46, 204, 113, 0.3);
-}
-
-.message.error {
-  background: rgba(231, 76, 60, 0.1);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.3);
-}
-
-.message-icon {
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .profile-container {
-    padding: 80px 16px 16px 16px; /* 保持顶部padding给按钮留空间 */
+@media (max-width: 640px) {
+  .card-container {
+    padding: 24px;
   }
   
-  .profile-form-container {
-    padding: 24px 20px;
+  .form-grid {
+    grid-template-columns: 1fr;
   }
   
-  .form-row {
-    flex-direction: column;
-    gap: 16px;
+  .form-group.full-width {
+    grid-column: span 1;
   }
   
   .form-actions {
-    flex-direction: column;
+    flex-direction: column-reverse;
   }
   
-  .btn {
+  .submit-btn, .cancel-btn {
     width: 100%;
   }
 }

@@ -274,4 +274,34 @@ CREATE TABLE `users`  (
 INSERT INTO `users` VALUES (1, 'root', NULL, 'root', '$2a$10$ZWYh2uOcQugI7DvkKNomFO3l4Di.IMUUgHAQuLxOoIhR1du187EOu');
 INSERT INTO `users` VALUES (2, 'wzq', NULL, 'wzq', '$2a$10$Tlg0UMP4UgDwXazCaUboKeIEBk/Vxonbx1V1w5DJPZ76XUPpFWH1G');
 
+-- ----------------------------
+-- Table structure for ingredient_interactions
+-- ----------------------------
+DROP TABLE IF EXISTS `ingredient_interactions`;
+CREATE TABLE `ingredient_interactions`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `item1_id` bigint NOT NULL COMMENT '第一个食材/药材ID',
+  `item1_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '第一个食材/药材名称',
+  `item2_id` bigint NOT NULL COMMENT '第二个食材/药材ID',
+  `item2_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '第二个食材/药材名称',
+  `relationship_type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '关系类型（相生/相克）',
+  `effect_description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '效果描述',
+  `severity_level` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '严重程度（轻度/中度/重度）',
+  `scientific_basis` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '科学依据或中医理论依据',
+  `recommendation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '建议（如何搭配或避免）',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_item1_id`(`item1_id` ASC) USING BTREE,
+  INDEX `idx_item2_id`(`item2_id` ASC) USING BTREE,
+  INDEX `idx_relationship_type`(`relationship_type` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '食材药材相生相克关系表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of ingredient_interactions
+-- ----------------------------
+INSERT INTO `ingredient_interactions` VALUES (1, 1, '枸杞', 5, '菊花', '相生', '枸杞滋补肝肾，菊花清肝明目，两者搭配使用能够增强养肝明目的功效，适合长期用眼、肝肾阴虚的人群。常用于缓解眼睛疲劳、视力模糊、头晕目眩等症状。', '有益', '中医理论：枸杞甘平，入肝肾经；菊花辛甘微寒，入肝肺经。二者配伍，一补一清，补而不滞，清而不伤，共同起到滋养肝肾、清热明目的作用。现代研究表明，枸杞多糖和菊花黄酮类化合物具有协同抗氧化作用。', '建议泡茶饮用：枸杞10-15克，菊花5-8朵，温水冲泡。特别适合长时间使用电脑、手机的人群日常保健。', '2025-11-25 22:18:13', '2025-11-25 22:18:13');
+INSERT INTO `ingredient_interactions` VALUES (2, 3, '红枣', 4, '生姜', '相克', '红枣性温味甘，具有补中益气、养血安神的功效；生姜性温味辛，具有发汗解表、温中止呕的作用。两者同时大量食用可能导致体内燥热加重，容易出现口干舌燥、咽喉肿痛、便秘等上火症状。', '中度', '中医理论：红枣与生姜皆性温，同食会加重体内的热性，导致燥热内盛。现代营养学认为，生姜中的姜辣素与红枣中的糖分结合，可能刺激胃黏膜，增加胃肠负担，对于本身胃热较重或阴虚火旺的人群尤其不利。', '如需同时使用，建议控制用量：红枣不超过5颗，生姜2-3片即可。阴虚火旺、内热较重者应避免同时食用。可以分开使用，或者搭配一些性凉的食材如薄荷、绿茶来平衡。', '2025-11-25 22:18:13', '2025-11-25 22:18:13');
+INSERT INTO `ingredient_interactions` VALUES (3, 26, '当归', 8, '绿茶', '相克', '当归是常用的补血活血药材，而绿茶含有大量的鞣酸和茶碱。鞣酸会与当归中的有效成分结合，形成难以吸收的沉淀物，大大降低当归的药效。同时，茶碱的利尿作用会加速当归成分的排出，影响补血效果。', '中度', '现代药理学研究表明，茶叶中的鞣酸（单宁酸）会与当归中的铁离子、多糖等活性成分发生化学反应，生成不易被人体吸收的络合物。此外，绿茶的碱性成分会改变胃肠道的pH值，影响当归有效成分的溶出和吸收。', '服用当归及含当归的中药时，应避免同时饮用绿茶、红茶等茶饮。建议服药前后2小时内不要喝茶。如需饮品，可选择温开水或淡盐水。日常保健时，也应避免当归与茶叶长期同食。', '2025-11-25 22:18:13', '2025-11-25 22:18:13');
+
 SET FOREIGN_KEY_CHECKS = 1;

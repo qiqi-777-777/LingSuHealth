@@ -1,123 +1,124 @@
 <template>
   <div class="checkin-container">
-    <!-- 返回首页按钮 -->
-    <button @click="goHome" class="back-btn back-top-left">
-      <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      <span>返回首页</span>
-    </button>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration top-right"></div>
+    <div class="bg-decoration bottom-left"></div>
 
-    <!-- 已记录提示弹窗（样式2） -->
-    <div v-if="showAlreadyChecked" class="checked-modal-overlay" @click="closeAlreadyChecked">
-      <div class="checked-modal" @click.stop>
-        <div class="checked-icon">✔️</div>
-        <h3 class="checked-title">今日已记录</h3>
-        <p class="checked-message">您今天已经完成记录，每天只能记录一次哦~</p>
-        <p class="checked-sub-message">明天再来记录您的健康数据吧！</p>
-        <div class="checked-actions">
-          <button @click="closeAlreadyChecked" class="btn-primary">查看仪表盘</button>
-          <button @click="showAlreadyChecked = false" class="btn-secondary">关闭</button>
-        </div>
+    <!-- 顶部导航 -->
+    <div class="nav-header">
+      <button @click="goHome" class="back-btn">
+        <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        <span>返回首页</span>
+      </button>
+      <div class="page-title">
+        <h1>养生记录</h1>
+        <p>记录每日状态，开启健康生活</p>
+      </div>
+      <div class="header-actions">
+         <!-- 占位，保持平衡 -->
       </div>
     </div>
 
-    <!-- 成功提示弹窗 -->
-    <div v-if="showSuccessModal" class="success-modal-overlay" @click="closeSuccessModal">
-      <div class="success-modal" @click.stop>
-        <div class="success-animation">
-          <div class="success-checkmark">
-            <div class="check-icon">
-              <span class="icon-line line-tip"></span>
-              <span class="icon-line line-long"></span>
-            </div>
-          </div>
-        </div>
-        <div class="success-content">
-          <h3 class="success-title">记录成功！</h3>
-          <p class="success-message">您的健康数据已成功记录</p>
-          <div class="success-details">
-            <div class="detail-item">
-              <span class="detail-icon">📅</span>
-              <span class="detail-text">{{ getCurrentDate() }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-icon">⏰</span>
-              <span class="detail-text">{{ formatTime(new Date()) }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="success-actions">
-          <button @click="continueCheckin" class="btn-continue">继续记录</button>
-          <button @click="goHome" class="btn-home">返回首页</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <span class="title-icon">✅</span>
-          养生记录
-        </h1>
-        <p class="page-subtitle">记录每日养生状态，AI智能分析您的健康趋势</p>
-      </div>
-    </div>
-
-    <!-- 双栏布局：左侧记录，右侧近7天历史 -->
-    <div class="checkin-main" v-if="!showResult">
-      <div class="left-panel">
-        <div class="checkin-form-card">
-          <div class="form-header">
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 左侧：记录表单 -->
+      <div class="form-panel glass-card" v-if="!showResult">
+        <div class="panel-header">
+          <div class="header-left">
             <h2>今日记录</h2>
-            <div class="date">{{ getCurrentDate() }}</div>
+            <div class="date-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path :d="iconPaths.calendar" />
+              </svg>
+              {{ getCurrentDate() }}
+            </div>
           </div>
+        </div>
 
-          <div class="form-content">
-            <!-- 睡眠时长 -->
+        <!-- 步骤指示器 -->
+        <div class="stepper">
+          <div 
+            v-for="step in totalSteps" 
+            :key="step" 
+            class="step-item"
+            :class="{ active: currentStep === step, completed: currentStep > step }"
+            @click="goToStep(step)"
+          >
+            <div class="step-circle">
+              <span v-if="currentStep > step" class="check-icon">✓</span>
+              <span v-else>{{ step }}</span>
+            </div>
+            <span class="step-label">
+              {{ step === 1 ? '基础信息' : step === 2 ? '健康状态' : '饮食记录' }}
+            </span>
+            <div class="step-line" v-if="step < totalSteps"></div>
+          </div>
+        </div>
+
+        <div class="form-body">
+          <!-- 步骤1：基础信息 -->
+          <div v-show="currentStep === 1" class="step-content fade-in">
             <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">😴</span>
-                睡眠时长
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.sleep" />
+                  </svg>
+                </span>
+                睡眠时长 <span class="required">*</span>
               </label>
-              <div class="slider-container">
-                <input
-                  type="range"
-                  v-model="checkinData.sleepHours"
-                  min="0"
-                  max="12"
-                  step="0.5"
-                  class="slider"
+              <div class="slider-wrapper">
+                <div class="slider-value">{{ checkinData.sleepHours }} <small>小时</small></div>
+                <input 
+                  type="range" 
+                  v-model="checkinData.sleepHours" 
+                  min="0" 
+                  max="12" 
+                  step="0.5" 
+                  class="custom-slider"
+                  :style="{ backgroundSize: (checkinData.sleepHours / 12) * 100 + '% 100%' }"
                 >
-                <div class="slider-value">{{ checkinData.sleepHours }} 小时</div>
+                <div class="slider-labels">
+                  <span>0</span>
+                  <span>6</span>
+                  <span>12</span>
+                </div>
               </div>
             </div>
 
-            <!-- 入睡时间 -->
             <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">🌙</span>
-                入睡时间
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.sleep_moon" />
+                  </svg>
+                </span>
+                入睡时间 <span class="required">*</span>
               </label>
-              <input
-                type="time"
-                v-model="checkinData.sleepTime"
-                class="time-input"
-              >
+              <div class="input-wrapper">
+                <input type="time" v-model="checkinData.sleepTime" class="custom-input time-input">
+              </div>
             </div>
+          </div>
 
-            <!-- 今日症状 -->
+          <!-- 步骤2：健康状态 -->
+          <div v-show="currentStep === 2" class="step-content fade-in">
             <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">🤒</span>
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.symptom" />
+                  </svg>
+                </span>
                 今日症状
               </label>
-              <div class="multi-select">
-                <div
-                  v-for="symptom in symptoms"
+              <div class="tags-grid">
+                <div 
+                  v-for="symptom in symptoms" 
                   :key="symptom"
-                  class="symptom-tag"
+                  class="tag-item"
                   :class="{ active: checkinData.symptoms.includes(symptom) }"
                   @click="toggleSymptom(symptom)"
                 >
@@ -126,175 +127,593 @@
               </div>
             </div>
 
-            <!-- 情绪 -->
             <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">😊</span>
-                情绪状态
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.mood_status" />
+                  </svg>
+                </span>
+                情绪状态 <span class="required">*</span>
               </label>
-              <div class="emoji-options">
-                <div
-                  v-for="(mood, index) in moods"
+              <div class="mood-selector">
+                <div 
+                  v-for="(moodItem, index) in moods" 
                   :key="index"
-                  class="emoji-option"
+                  class="mood-item"
                   :class="{ active: checkinData.mood === index }"
                   @click="checkinData.mood = index"
                 >
-                  <span class="emoji">{{ mood.emoji }}</span>
-                  <span class="mood-text">{{ mood.name }}</span>
+                  <div class="mood-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path :d="iconPaths[moodItem.iconKey]" />
+                    </svg>
+                  </div>
+                  <span class="mood-name">{{ moodItem.name }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- 运动分钟 -->
             <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">🏃</span>
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.exercise_run" />
+                  </svg>
+                </span>
                 运动时长
               </label>
-              <div class="number-input">
-                <button @click="adjustExercise(-10)" class="adjust-btn">-</button>
-                <input
-                  type="number"
-                  v-model="checkinData.exerciseMinutes"
-                  min="0"
-                  max="300"
-                  class="number-field"
-                >
-                <button @click="adjustExercise(10)" class="adjust-btn">+</button>
-                <span class="unit">分钟</span>
+              <div class="counter-input">
+                <button @click="adjustExercise(-10)" class="counter-btn minus">-</button>
+                <div class="counter-display">
+                  <input type="number" v-model="checkinData.exerciseMinutes" min="0" max="300">
+                  <span>分钟</span>
+                </div>
+                <button @click="adjustExercise(10)" class="counter-btn plus">+</button>
               </div>
             </div>
-
-            <!-- 饮食简记 -->
-            <div class="form-group">
-              <label class="form-label">
-                <span class="label-icon">🍽️</span>
-                饮食记录
-              </label>
-              <textarea
-                v-model="checkinData.dietNotes"
-                placeholder="简单记录今日饮食，如：早餐小米粥，午餐青菜炒肉..."
-                class="diet-textarea"
-                rows="3"
-              ></textarea>
-            </div>
-
           </div>
 
-          <!-- 提交按钮 -->
-          <div class="form-actions">
-            <button
-              @click="submitCheckin"
-              :disabled="loading || !isFormValid"
-              class="submit-btn"
-              :class="{ loading: loading }"
-            >
-              <span v-if="!loading">提交记录</span>
-              <span v-else>提交中...</span>
+          <!-- 步骤3：饮食记录 -->
+          <div v-show="currentStep === 3" class="step-content fade-in">
+            <div class="form-group full-height">
+              <label class="input-label">
+                <span class="icon-box sm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path :d="iconPaths.diet" />
+                  </svg>
+                </span>
+                饮食记录
+              </label>
+              <textarea 
+                v-model="checkinData.dietNotes"
+                placeholder="简单记录今日饮食，如：早餐小米粥，午餐青菜炒肉..."
+                class="custom-textarea"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button v-if="currentStep > 1" @click="prevStep" class="btn-secondary">
+            上一步
+          </button>
+          <div class="spacer"></div>
+          <button 
+            v-if="currentStep < totalSteps" 
+            @click="nextStep" 
+            class="btn-primary"
+            :disabled="!isCurrentStepValid"
+          >
+            下一步
+          </button>
+          <button 
+            v-else 
+            @click="submitCheckin" 
+            class="btn-primary submit"
+            :disabled="loading || !isFormValid"
+          >
+            <span v-if="loading" class="spinner"></span>
+            提交记录
+          </button>
+        </div>
+      </div>
+
+      <!-- AI分析结果展示页 (移入 main-content) -->
+      <div class="result-view" v-if="showResult && analysisResult">
+         <div class="result-card glass-card">
+           <div class="result-header">
+             <div class="title-group">
+               <div class="icon-box lg success">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                   <path :d="iconPaths.check_circle" />
+                 </svg>
+               </div>
+               <div>
+                 <h2>AI健康分析报告</h2>
+                 <p>{{ formatTime(new Date()) }}</p>
+               </div>
+             </div>
+             <div class="score-display">
+               <div class="score-circle">
+                 <span class="score-val">{{ analysisResult.healthScore || '-' }}</span>
+                 <span class="score-lbl">健康分</span>
+               </div>
+             </div>
+           </div>
+  
+           <div class="result-body">
+              <!-- 智能总结 -->
+              <div class="info-section primary">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.bulb" /></svg>
+                  智能总结
+                </h3>
+                <p>{{ analysisResult.summary }}</p>
+              </div>
+  
+              <!-- 风险提示 -->
+              <div v-if="analysisResult.risks && analysisResult.risks.length" class="info-section danger">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.warning" /></svg>
+                  风险提示
+                </h3>
+                <ul class="risk-list">
+                  <li v-for="(risk, idx) in analysisResult.risks" :key="idx">
+                    <span class="risk-badge">{{ risk.level }}</span>
+                    {{ risk.content }}
+                  </li>
+                </ul>
+              </div>
+  
+              <!-- 个性化建议 -->
+              <div class="info-section info">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.target" /></svg>
+                  个性化建议
+                </h3>
+                <div class="suggestion-cards">
+                  <div v-for="(sug, idx) in analysisResult.suggestions" :key="idx" class="sug-card">
+                    <h4>{{ sug.title }}</h4>
+                    <p>{{ sug.content }}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 明日重点 -->
+              <div v-if="analysisResult.tomorrowTasks && analysisResult.tomorrowTasks.length" class="info-section warning">
+                 <h3>
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.calendar" /></svg>
+                   明日重点
+                 </h3>
+                 <ul class="task-list">
+                   <li v-for="(task, idx) in analysisResult.tomorrowTasks" :key="idx">
+                     <span class="task-num">{{ idx + 1 }}</span>
+                     {{ task }}
+                   </li>
+                 </ul>
+              </div>
+  
+               <!-- 趋势图 -->
+              <div class="chart-box">
+                <h3>健康趋势</h3>
+                <canvas ref="chartCanvas" width="600" height="250"></canvas>
+              </div>
+           </div>
+  
+           <div class="result-footer">
+             <button @click="resetForm" class="btn-secondary">再次记录</button>
+             <button @click="goHome" class="btn-primary">返回首页</button>
+           </div>
+         </div>
+      </div>
+
+      <!-- 右侧：历史记录 -->
+      <div class="history-panel glass-card">
+
+        <div class="panel-header">
+          <h3>近期记录</h3>
+          <div class="header-actions">
+            <button @click="toggleFilter" class="icon-btn" :class="{ active: showFilter }" title="筛选">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+              </svg>
+            </button>
+            <button @click="openExportDialog" class="icon-btn" title="导出">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
             </button>
           </div>
         </div>
-      </div>
 
-      <aside class="right-panel">
-        <div class="history-panel">
-          <h3 class="history-title">近7天记录历史</h3>
-          <div class="history-list">
-            <div
-              v-for="record in checkinHistory"
-              :key="record.date"
-              class="history-item"
+        <!-- 筛选面板 -->
+        <div v-if="showFilter" class="filter-panel fade-in">
+          <div class="filter-row mb-2">
+            <input 
+              type="text" 
+              v-model="searchKeyword" 
+              placeholder="搜索症状、饮食或总结..." 
+              class="custom-input sm"
+              style="width: 100%"
             >
-              <div class="history-date">{{ record.date }}</div>
-              <div class="history-summary">
-                <span class="history-score" v-if="record.healthScore !== undefined">健康分 {{ record.healthScore }}</span>
-                <span class="history-text" v-else>{{ record.summary }}</span>
+          </div>
+          <div class="filter-row">
+            <input type="date" v-model="filterStartDate" class="custom-input sm">
+            <span>至</span>
+            <input type="date" v-model="filterEndDate" class="custom-input sm">
+          </div>
+          <div class="filter-row actions">
+            <button @click="clearFilter" class="text-btn">清除</button>
+            <button @click="applyFilter" class="btn-primary sm">应用</button>
+          </div>
+        </div>
+
+        <div class="history-list">
+          <div 
+            v-for="record in checkinHistory" 
+            :key="record.date" 
+            class="history-card"
+            @click="openDetailModal(record)"
+          >
+            <div class="card-left">
+              <div class="record-date">{{ formatDateShort(record.date) }}</div>
+              <div class="record-mood">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path :d="iconPaths[getMoodInfo(record.mood).iconKey] || ''" />
+                </svg>
               </div>
             </div>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <!-- AI分析结果 -->
-    <div class="result-card" v-if="showResult && analysisResult">
-      <div class="result-header">
-        <h2>AI健康分析报告</h2>
-        <div class="analysis-time">{{ formatTime(new Date()) }}</div>
-      </div>
-
-      <div class="result-content">
-        <!-- 一句话总结 -->
-        <div class="summary-section">
-          <h3>
-            <span class="section-icon">💡</span>
-            今日健康总结
-          </h3>
-          <div class="summary-text">{{ analysisResult.summary }}</div>
-        </div>
-
-        <!-- 健康趋势图表 -->
-        <div class="chart-section">
-          <h3>
-            <span class="section-icon">📊</span>
-            近7天健康趋势
-          </h3>
-          <div class="chart-container">
-            <canvas ref="chartCanvas" width="400" height="200"></canvas>
-          </div>
-        </div>
-
-        <!-- 个性化建议 -->
-        <div class="suggestions-section">
-          <h3>
-            <span class="section-icon">🎯</span>
-            个性化建议
-          </h3>
-          <div class="suggestions-list">
-            <div
-              v-for="(suggestion, index) in analysisResult.suggestions"
-              :key="index"
-              class="suggestion-item"
-            >
-              <span class="suggestion-icon">{{ suggestion.icon }}</span>
-              <div class="suggestion-content">
-                <h4>{{ suggestion.title }}</h4>
-                <p>{{ suggestion.content }}</p>
+            <div class="card-right">
+              <div class="score-tag" :class="getScoreClass(record.healthScore)">
+                {{ record.healthScore || '-' }}分
+              </div>
+              <div class="tags-row">
+                 <span v-if="record.sleepHours" class="mini-tag">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.sleep" /></svg>
+                   {{ record.sleepHours }}h
+                 </span>
+                 <span v-if="record.exerciseMinutes" class="mini-tag">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.exercise" /></svg>
+                   {{ record.exerciseMinutes }}min
+                 </span>
               </div>
             </div>
+            <button 
+              class="delete-btn" 
+              @click.stop="deleteCheckinRecord(record)"
+              title="删除记录"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+          </div>
+          <div v-if="checkinHistory.length === 0" class="empty-state">
+            暂无记录
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- 明日方案 -->
-        <div class="plan-section">
-          <h3>
-            <span class="section-icon">📅</span>
-            明日养生方案
-          </h3>
-          <div class="plan-content">{{ analysisResult.tomorrowPlan }}</div>
+    <!-- 模态框组件 -->
+    <div v-if="showDetailModal && selectedRecord" class="modal-overlay fade-in" @click="closeDetailModal">
+      <div class="modal-card glass-card" @click.stop>
+        <div class="modal-header">
+          <h3>记录详情</h3>
+          <button @click="closeDetailModal" class="close-btn">×</button>
+        </div>
+        <div class="modal-content">
+          <div class="detail-row">
+            <span class="label">日期</span>
+            <span class="value">{{ selectedRecord.date }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">健康分</span>
+            <span class="value highlight">{{ selectedRecord.healthScore }}</span>
+          </div>
+          <div class="detail-grid">
+             <div class="detail-item">
+               <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.sleep" /></svg></span>
+               <span>睡眠 {{ selectedRecord.sleepHours }}h</span>
+             </div>
+             <div class="detail-item">
+               <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.exercise" /></svg></span>
+               <span>运动 {{ selectedRecord.exerciseMinutes }}min</span>
+             </div>
+             <div class="detail-item">
+               <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths[getMoodInfo(selectedRecord?.mood).iconKey] || ''" /></svg></span>
+               <span>{{ getMoodInfo(selectedRecord?.mood).name }}</span>
+             </div>
+          </div>
+          <div v-if="selectedRecord.symptoms && selectedRecord.symptoms.length" class="detail-section">
+            <h4>症状</h4>
+            <div class="tags-row">
+              <span v-for="s in selectedRecord.symptoms" :key="s" class="mini-tag danger">{{ s }}</span>
+            </div>
+          </div>
+          <div v-if="selectedRecord.dietNotes" class="detail-section">
+            <h4>饮食</h4>
+            <p>{{ selectedRecord.dietNotes }}</p>
+          </div>
+          
+          <!-- AI分析详情 -->
+          <div v-if="selectedRecord.summary" class="detail-section highlight-section">
+             <h4>智能总结</h4>
+             <p>{{ selectedRecord.summary }}</p>
+          </div>
+
+          <div v-if="selectedRecord.risks && selectedRecord.risks.length" class="detail-section">
+             <h4>风险提示</h4>
+             <ul class="risk-list">
+               <li v-for="(risk, idx) in selectedRecord.risks" :key="idx">
+                 <span class="risk-badge" :class="risk.level === '高' ? 'high' : 'medium'">{{ risk.level }}</span>
+                 {{ risk.content }}
+               </li>
+             </ul>
+          </div>
+          
+          <div v-if="selectedRecord.suggestions && selectedRecord.suggestions.length" class="detail-section">
+             <h4>建议</h4>
+             <div class="mini-suggestions">
+               <div v-for="(sug, idx) in selectedRecord.suggestions" :key="idx" class="mini-sug-item">
+                 <strong>{{ sug.title }}</strong>
+                 <p>{{ sug.content }}</p>
+               </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出对话框 -->
+    <div v-if="showExportDialog" class="modal-overlay fade-in" @click="closeExportDialog">
+      <div class="modal-card glass-card export-dialog" @click.stop>
+         <div class="modal-header">
+           <h3>导出记录</h3>
+           <button @click="closeExportDialog" class="close-btn">×</button>
+         </div>
+         <div class="export-body">
+            <p class="export-hint">请选择要导出的打卡记录：</p>
+            <div class="export-list">
+               <label 
+                 v-for="(record, index) in filteredHistory" 
+                 :key="index"
+                 class="export-item"
+                 :class="{ selected: selectedExportIndex === index }"
+               >
+                 <input 
+                   type="radio" 
+                   v-model="selectedExportIndex" 
+                   :value="index"
+                   class="export-radio"
+                 >
+                 <div class="export-item-content">
+                   <div class="export-item-header">
+                     <span class="export-date">{{ formatDateFull(record.date) }}</span>
+                     <span class="export-score" :class="getScoreClass(record.healthScore)">
+                       {{ record.healthScore }}分
+                     </span>
+                   </div>
+                   <div class="export-item-info">
+                     <span class="info-tag">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path :d="iconPaths.sleep" />
+                       </svg>
+                       {{ record.sleepHours }}h
+                     </span>
+                     <span class="info-tag">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path :d="getMoodInfo(record.mood).iconKey === 'mood_happy' ? iconPaths.mood_happy : 
+                                   getMoodInfo(record.mood).iconKey === 'mood_good' ? iconPaths.mood_good :
+                                   getMoodInfo(record.mood).iconKey === 'mood_normal' ? iconPaths.mood_normal :
+                                   getMoodInfo(record.mood).iconKey === 'mood_bad' ? iconPaths.mood_bad :
+                                   iconPaths.mood_terrible" />
+                       </svg>
+                       {{ getMoodInfo(record.mood).name }}
+                     </span>
+                     <span class="info-tag">
+                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                         <path :d="iconPaths.exercise_run" />
+                       </svg>
+                       {{ record.exerciseMinutes }}min
+                     </span>
+                   </div>
+                 </div>
+                 <div class="export-check">
+                   <svg v-if="selectedExportIndex === index" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                     <path d="M5 13l4 4L19 7" />
+                   </svg>
+                 </div>
+               </label>
+            </div>
+         </div>
+         <div class="modal-footer">
+            <button @click="closeExportDialog" class="btn-secondary">取消</button>
+            <button 
+              @click="exportToPDF" 
+              class="btn-primary" 
+              :disabled="isExporting || selectedExportIndex === null"
+            >
+              {{ isExporting ? '导出中...' : '确认导出' }}
+            </button>
+         </div>
+      </div>
+    </div>
+
+    <!-- PDF导出内容（隐藏） -->
+    <div v-if="exportRecord" ref="pdfContent" class="pdf-content">
+      <div class="pdf-header">
+        <h1>健康打卡记录</h1>
+        <p class="pdf-date">{{ formatDateFull(exportRecord.date) }}</p>
+      </div>
+      
+      <div class="pdf-section">
+        <h2>健康评分</h2>
+        <div class="pdf-score-box">
+          <div class="pdf-score-circle" :class="getScoreClass(exportRecord.healthScore)">
+            <span class="pdf-score-value">{{ exportRecord.healthScore }}</span>
+            <span class="pdf-score-label">综合健康分</span>
+          </div>
         </div>
       </div>
 
-      <!-- 操作按钮 -->
-      <div class="result-actions">
-        <button @click="resetForm" class="secondary-btn">重新记录</button>
-        <button @click="goHome" class="primary-btn">返回首页</button>
+      <div class="pdf-section">
+        <h2>基础数据</h2>
+        <div class="pdf-data-grid">
+          <div class="pdf-data-item">
+            <span class="pdf-label">睡眠时长</span>
+            <span class="pdf-value">{{ exportRecord.sleepHours }} 小时</span>
+          </div>
+          <div class="pdf-data-item">
+            <span class="pdf-label">入睡时间</span>
+            <span class="pdf-value">{{ exportRecord.sleepTime }}</span>
+          </div>
+          <div class="pdf-data-item">
+            <span class="pdf-label">情绪状态</span>
+            <span class="pdf-value">{{ getMoodInfo(exportRecord.mood).name }}</span>
+          </div>
+          <div class="pdf-data-item">
+            <span class="pdf-label">运动时长</span>
+            <span class="pdf-value">{{ exportRecord.exerciseMinutes }} 分钟</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pdf-section" v-if="exportRecord.symptoms && exportRecord.symptoms.length > 0">
+        <h2>身体症状</h2>
+        <div class="pdf-tags">
+          <span v-for="symptom in exportRecord.symptoms" :key="symptom" class="pdf-tag">
+            {{ symptom }}
+          </span>
+        </div>
+      </div>
+
+      <div class="pdf-section" v-if="exportRecord.dietNotes">
+        <h2>饮食记录</h2>
+        <p class="pdf-text">{{ exportRecord.dietNotes }}</p>
+      </div>
+
+      <div class="pdf-section" v-if="exportRecord.summary">
+        <h2>健康总结</h2>
+        <p class="pdf-text">{{ exportRecord.summary }}</p>
+      </div>
+
+      <div class="pdf-section" v-if="exportRecord.suggestions && exportRecord.suggestions.length > 0">
+        <h2>个性化建议</h2>
+        <div class="pdf-suggestions">
+          <div v-for="(sug, idx) in exportRecord.suggestions" :key="idx" class="pdf-suggestion-item">
+            <strong>{{ sug.title }}：</strong>{{ sug.content }}
+          </div>
+        </div>
+      </div>
+
+      <div class="pdf-section" v-if="exportRecord.tomorrowPlan">
+        <h2>明日养生方案</h2>
+        <p class="pdf-text">{{ exportRecord.tomorrowPlan }}</p>
+      </div>
+
+      <div class="pdf-footer">
+        <p>导出时间：{{ new Date().toLocaleString('zh-CN') }}</p>
+        <p>灵素养生健康管理系统</p>
       </div>
     </div>
+
+    <!-- 成功提示 -->
+    <div v-if="showSuccessModal" class="modal-overlay fade-in">
+       <div class="modal-card glass-card text-center" @click.stop>
+          <div class="icon-box xl success mb-4">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path :d="iconPaths.check_circle" />
+             </svg>
+          </div>
+          <h3>记录成功</h3>
+          <p class="mb-6 text-sub">
+            您的健康数据已保存
+          </p>
+          <div class="btn-group-center">
+             <button @click="closeSuccessModal" class="btn-primary">确定</button>
+          </div>
+       </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div v-if="showDeleteConfirm" class="modal-overlay fade-in">
+       <div class="modal-card glass-card text-center" @click.stop>
+          <div class="icon-box xl danger mb-4">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+             </svg>
+          </div>
+          <h3>确认删除</h3>
+          <p class="mb-6 text-sub">
+            确定要删除 {{ deleteTargetDate }} 的打卡记录吗？<br>
+            此操作无法撤销
+          </p>
+          <div class="btn-group-center">
+             <button @click="cancelDelete" class="btn-secondary">取消</button>
+             <button @click="confirmDelete" class="btn-danger">确认删除</button>
+          </div>
+       </div>
+    </div>
+
+    <!-- AI生成健康报告提示 -->
+    <div v-if="showAIGenerating" class="modal-overlay fade-in">
+       <div class="modal-card glass-card text-center ai-generating-modal" @click.stop>
+          <div class="ai-icon-wrapper">
+            <div class="ai-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+              </svg>
+            </div>
+            <div class="ai-pulse-ring"></div>
+            <div class="ai-pulse-ring delay-1"></div>
+            <div class="ai-pulse-ring delay-2"></div>
+          </div>
+          <h3 class="ai-title">AI智能分析中</h3>
+          <p class="ai-subtitle">
+            正在为您生成个性化健康报告<br>
+            <span class="ai-dots">
+              <span class="dot">.</span>
+              <span class="dot">.</span>
+              <span class="dot">.</span>
+            </span>
+          </p>
+          <div class="ai-progress-bar">
+            <div class="ai-progress-fill"></div>
+          </div>
+       </div>
+    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { postCheckin, getCheckinSummary, getHealthTrends, checkTodayCheckin } from '../services/api';
+import { postCheckin, getCheckinSummary, deleteCheckinById } from '../services/api';
+
+defineOptions({ name: 'CheckinView' });
 
 // 类型定义
 interface HealthTrend {
+  id?: number;
   date: string;
   healthScore: number;
   summary?: string;
+  sleepHours?: number;
+  sleepTime?: string;
+  symptoms?: string[];
+  mood?: number;
+  exerciseMinutes?: number;
+  dietNotes?: string;
+  createdAt?: string;
+  suggestions?: Suggestion[];
+  risks?: Array<{ level: string; content: string }>;
+  tomorrowPlan?: string;
+  tomorrowTasks?: string[];
 }
 
 interface Suggestion {
@@ -308,18 +727,39 @@ interface AnalysisResult {
   suggestions: Suggestion[];
   healthScore?: number;
   tomorrowPlan: string;
+  tomorrowTasks?: string[];
+  risks?: Array<{ level: string; content: string }>;
 }
 
 const router = useRouter();
 
-// 响应式数据
+// 状态管理
 const loading = ref(false);
 const showResult = ref(false);
 const showSuccessModal = ref(false);
-const showAlreadyChecked = ref(false);
+const showDetailModal = ref(false);
+const selectedRecord = ref<HealthTrend | null>(null);
 const analysisResult = ref<AnalysisResult | null>(null);
 const checkinHistory = ref<HealthTrend[]>([]);
 const chartCanvas = ref<HTMLCanvasElement>();
+const showDeleteConfirm = ref(false);
+const deleteTargetId = ref<number | null>(null);
+const deleteTargetDate = ref('');
+const showExportDialog = ref(false);
+const selectedExportIndex = ref<number | null>(null);
+const exportRecord = ref<HealthTrend | null>(null);
+const isExporting = ref(false);
+const pdfContent = ref<HTMLElement>();
+const showAIGenerating = ref(false);
+
+const currentStep = ref(1);
+const totalSteps = 3;
+
+// 筛选
+const showFilter = ref(false);
+const filterStartDate = ref('');
+const filterEndDate = ref('');
+const searchKeyword = ref('');
 
 // 记录数据
 const checkinData = ref({
@@ -338,23 +778,101 @@ const symptoms = [
 ];
 
 const moods = [
-  { emoji: '😢', name: '很差' },
-  { emoji: '😕', name: '一般' },
-  { emoji: '😊', name: '良好' },
-  { emoji: '😄', name: '很好' },
-  { emoji: '🤩', name: '极佳' }
+  { iconKey: 'mood_very_bad', name: '很差' },
+  { iconKey: 'mood_bad', name: '一般' },
+  { iconKey: 'mood_normal', name: '良好' },
+  { iconKey: 'mood_good', name: '很好' },
+  { iconKey: 'mood_excellent', name: '极佳' }
 ];
 
-// 计算属性
+// 图标路径 (SVG Paths)
+const iconPaths: Record<string, string> = {
+  sleep: 'M2 20h20M5 20V8h14v12M5 12h14M12 3a4 4 0 0 0-4 4h8a4 4 0 0 0-4-4z',
+  sleep_moon: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z',
+  time: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm-1-8V6a1 1 0 112 0v5a1 1 0 01-1 1H7a1 1 0 110-2h4z',
+  symptom: 'M14 4a2 2 0 10-4 0v9.172a3 3 0 104 0V4z M12 14a1 1 0 100 2 1 1 0 000-2z',
+  exercise: 'M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z',
+  exercise_run: 'M20.38 8.57l-1.23 1.85a8 8 0 0 1-1.99 1.93l-.64 1.53L12 12v-2.7l1.7-1.12c.3-.2.5-.53.5-.88V3.25c0-.69-.56-1.25-1.25-1.25H9.05c-.69 0-1.25.56-1.25 1.25v2.85c0 .33.12.65.34.89l1.86 2.05V12l-4.52 1.65a1 1 0 0 0-.64 1.22c.1.5.54.85 1.05.85.1 0 .21-.02.32-.05L9 14.7v5.05c0 .55.45 1 1 1s1-.45 1-1v-4.4l4.2-1.5c.26-.09.49-.25.66-.46l1.54-1.93 1.28.85c.18.12.39.19.6.19.26 0 .52-.11.71-.29.39-.39.39-1.02 0-1.41z M11 5h2v2h-2V5zm10-3h-4c-.55 0-1 .45-1 1s.45 1 1 1h4c.55 0 1-.45 1-1s-.45-1-1-1zm0 3h-2c-.55 0-1 .45-1 1s.45 1 1 1h2c.55 0 1-.45 1-1s-.45-1-1-1z',
+  diet: 'M8.5 4a.5.5 0 01.5.5v2a.5.5 0 01-.5.5H8a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h1a.5.5 0 00.5-.5v-11a.5.5 0 00-.5-.5H13a.5.5 0 01-.5-.5v-2a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v2a.5.5 0 01-.5.5h-.5a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h1a.5.5 0 00.5-.5v-11a.5.5 0 00-.5-.5H13a.5.5 0 01-.5-.5v-2a.5.5 0 01.5-.5h2z',
+  calendar: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+  check_circle: 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3',
+  bulb: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+  chart: 'M18 20V10M12 20V4M6 20v-6',
+  target: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm0-4a4 4 0 100-8 4 4 0 000 8z',
+  warning: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+  
+  // Section Icons
+  mood_status: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z M3.5 12h3l2 3 2-6 2 3h3',
+  exercise_time: 'M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7zM22 12c0 5.52-4.48 10-10 10S2 17.52 2 12h2c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8V2c5.52 0 10 4.48 10 10z',
+
+  // Mood Icons (Redesigned)
+  mood_very_bad: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M9 16c1.5-1.5 4.5-1.5 6 0 M9 9h.01 M15 9h.01',
+  mood_bad: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M9 15c1.5-1 4.5-1 6 0 M9 9h.01 M15 9h.01',
+  mood_normal: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M9 14h6 M9 9h.01 M15 9h.01',
+  mood_good: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M9 14c1.5 1 4.5 1 6 0 M9 9h.01 M15 9h.01',
+  mood_excellent: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 14s1.5 2 4 2 4-2 4-2 M9 9h.01 M15 9h.01',
+};
+
+// Computed
 const isFormValid = computed(() => {
   return checkinData.value.sleepTime &&
          checkinData.value.sleepHours > 0 &&
          checkinData.value.mood !== null;
 });
 
-// 方法
-const goHome = () => {
-  router.push('/dashboard');
+const isCurrentStepValid = computed(() => {
+  switch (currentStep.value) {
+    case 1:
+      return !!(checkinData.value.sleepTime && checkinData.value.sleepHours > 0);
+    case 2:
+      return checkinData.value.mood !== null;
+    case 3:
+      return true;
+    default:
+      return false;
+  }
+});
+
+const filteredHistory = computed(() => {
+  let filtered = [...checkinHistory.value];
+  if (filterStartDate.value) filtered = filtered.filter(r => r.date >= filterStartDate.value);
+  if (filterEndDate.value) filtered = filtered.filter(r => r.date <= filterEndDate.value);
+  
+  if (searchKeyword.value) {
+    const k = searchKeyword.value.toLowerCase();
+    filtered = filtered.filter(r => 
+      (r.dietNotes && r.dietNotes.toLowerCase().includes(k)) ||
+      (r.summary && r.summary.toLowerCase().includes(k)) ||
+      (r.symptoms && r.symptoms.some(s => s.toLowerCase().includes(k)))
+    );
+  }
+  
+  return filtered;
+});
+
+// Helper Functions
+const getMoodInfo = (index: number | undefined) => {
+  const i = index ?? 2;
+  return moods[i] || moods[2] || { iconKey: 'mood_normal', name: '良好' };
+};
+
+const getScoreClass = (score: number) => {
+  if (!score) return 'bg-gray';
+  if (score >= 85) return 'bg-success';
+  if (score >= 70) return 'bg-primary';
+  if (score >= 60) return 'bg-warning';
+  return 'bg-danger';
+};
+
+const formatDateShort = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+};
+
+const formatDateFull = (dateStr: string) => {
+  const d = new Date(dateStr);
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${weekdays[d.getDay()]}`;
 };
 
 const getCurrentDate = () => {
@@ -366,9 +884,10 @@ const getCurrentDate = () => {
   });
 };
 
-const formatTime = (date: Date) => {
-  return date.toLocaleString('zh-CN');
-};
+const formatTime = (date: Date) => date.toLocaleString('zh-CN');
+
+// Actions
+const goHome = () => router.push('/dashboard');
 
 const toggleSymptom = (symptom: string) => {
   const index = checkinData.value.symptoms.indexOf(symptom);
@@ -380,16 +899,96 @@ const toggleSymptom = (symptom: string) => {
 };
 
 const adjustExercise = (amount: number) => {
-  const newValue = checkinData.value.exerciseMinutes + amount;
-  if (newValue >= 0 && newValue <= 300) {
-    checkinData.value.exerciseMinutes = newValue;
+  const val = checkinData.value.exerciseMinutes + amount;
+  if (val >= 0 && val <= 300) checkinData.value.exerciseMinutes = val;
+};
+
+const goToStep = (step: number) => {
+  if (step < currentStep.value) {
+    currentStep.value = step;
+  } else if (step > currentStep.value && isCurrentStepValid.value) {
+    currentStep.value = step;
   }
+};
+
+const nextStep = () => {
+  if (isCurrentStepValid.value && currentStep.value < totalSteps) {
+    currentStep.value++;
+  }
+};
+
+const prevStep = () => {
+  if (currentStep.value > 1) currentStep.value--;
+};
+
+// Data Loading & Submission
+onMounted(async () => {
+  // 移除打卡检查，允许多次打卡
+  await loadCheckinHistory();
+});
+
+const loadCheckinHistory = async () => {
+  try {
+    const res = await getCheckinSummary(7);
+    checkinHistory.value = res.history || [];
+  } catch (e) {
+    console.error('Failed to load history', e);
+  }
+};
+
+// 删除打卡记录
+const deleteCheckinRecord = async (record: HealthTrend) => {
+  if (!record.id) {
+    alert('无法删除：记录ID不存在');
+    return;
+  }
+  deleteTargetId.value = record.id;
+  deleteTargetDate.value = record.date;
+  showDeleteConfirm.value = true;
+};
+
+const confirmDelete = async () => {
+  if (deleteTargetId.value === null) {
+    alert('删除失败：记录ID不存在');
+    return;
+  }
+  
+  try {
+    loading.value = true;
+    showDeleteConfirm.value = false;
+    console.log('准备删除记录ID:', deleteTargetId.value);
+    const response = await deleteCheckinById(deleteTargetId.value);
+    console.log('删除响应:', response);
+    
+    if (response.success) {
+      await loadCheckinHistory();
+      console.log('历史记录已刷新');
+    } else {
+      alert(`删除失败: ${response.message}`);
+    }
+  } catch (e) {
+    const error = e as { response?: { data?: { message?: string } }; message?: string };
+    console.error('删除失败，错误对象:', error);
+    console.error('错误响应:', error.response?.data);
+    alert(`删除失败: ${error.response?.data?.message || error.message || '请稍后重试'}`);
+  } finally {
+    loading.value = false;
+    deleteTargetId.value = null;
+    deleteTargetDate.value = '';
+  }
+};
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false;
+  deleteTargetId.value = null;
+  deleteTargetDate.value = '';
 };
 
 const submitCheckin = async () => {
   if (!isFormValid.value || loading.value) return;
   loading.value = true;
-
+  showAIGenerating.value = true; // 显示AI生成提示
+  
   try {
     const submitData = {
       ...checkinData.value,
@@ -398,58 +997,44 @@ const submitCheckin = async () => {
       exerciseMinutes: Number(checkinData.value.exerciseMinutes),
       date: new Date().toISOString().split('T')[0]
     };
-
+    
+    // 直接提交，不再区分编辑模式
     const response = await postCheckin(submitData);
 
     if (response.success) {
+      // 隐藏AI生成提示
+      showAIGenerating.value = false;
+      
+      // Construct result (simplified for brevity, assume backend returns valid data)
+      analysisResult.value = {
+        summary: response.summary || '记录成功',
+        suggestions: response.suggestions || [],
+        healthScore: response.healthScore,
+        tomorrowPlan: response.tomorrowPlan || '',
+        tomorrowTasks: response.tomorrowTasks || [],
+        risks: response.risks || []
+      };
+      
+      // 先刷新历史记录，再显示结果页面
+      await loadCheckinHistory();
+      showResult.value = true;
       showSuccessModal.value = true;
     } else {
-      const msg = response.message || '未知错误';
-      if (msg.includes('今日已记录')) {
-        showAlreadyChecked.value = true;
-      } else {
-        alert('记录失败：' + msg);
-      }
+      showAIGenerating.value = false;
+      alert(response.message || '提交失败');
     }
-  } catch (error) {
-    console.error('提交记录失败:', error);
-    alert('提交失败，请检查网络连接后重试');
+  } catch (e) {
+    console.error(e);
+    showAIGenerating.value = false;
+    alert('网络错误');
   } finally {
     loading.value = false;
   }
 };
 
-const closeSuccessModal = () => {
-  showSuccessModal.value = false;
-};
-
-const closeAlreadyChecked = () => {
-  showAlreadyChecked.value = false;
-  // 跳转仪表盘，让用户查看数据
-  router.push('/dashboard-metrics');
-};
-
-// 检查今日是否已记录
-const checkIfAlreadyCheckedIn = async () => {
-  try {
-    const result = await checkTodayCheckin();
-    if (result.hasCheckedIn) {
-      showAlreadyChecked.value = true;
-    }
-  } catch (error) {
-    console.error('检查记录状态失败:', error);
-  }
-};
-
-const continueCheckin = () => {
-  showSuccessModal.value = false;
-  resetForm();
-};
-
 const resetForm = () => {
   showResult.value = false;
-  analysisResult.value = null;
-  // 重置表单数据
+  currentStep.value = 1;
   checkinData.value = {
     sleepHours: 8,
     sleepTime: '23:00',
@@ -460,1152 +1045,1605 @@ const resetForm = () => {
   };
 };
 
+const closeSuccessModal = async () => {
+  showSuccessModal.value = false;
+};
+
+// Detail Modal
+const openDetailModal = (record: HealthTrend) => {
+  selectedRecord.value = record;
+  showDetailModal.value = true;
+};
+const closeDetailModal = () => showDetailModal.value = false;
+
+// Filter
+const toggleFilter = () => showFilter.value = !showFilter.value;
+const clearFilter = () => {
+  filterStartDate.value = '';
+  filterEndDate.value = '';
+  searchKeyword.value = '';
+};
+const applyFilter = () => showFilter.value = false;
+
+// Export
+const openExportDialog = () => {
+  selectedExportIndex.value = null;
+  exportRecord.value = null;
+  showExportDialog.value = true;
+};
+
+const closeExportDialog = () => {
+  showExportDialog.value = false;
+  selectedExportIndex.value = null;
+  exportRecord.value = null;
+};
+
+const exportToPDF = async () => {
+  if (selectedExportIndex.value === null) {
+    alert('请选择要导出的记录');
+    return;
+  }
+
+  isExporting.value = true;
+  
+  try {
+    // 找到选中的记录
+    const record = filteredHistory.value[selectedExportIndex.value];
+    if (!record) {
+      alert('未找到选中的记录');
+      return;
+    }
+
+    exportRecord.value = record;
+    
+    // 等待DOM更新
+    await nextTick();
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (!pdfContent.value) {
+      alert('PDF内容未加载');
+      return;
+    }
+
+    // 动态导入库
+    const html2canvas = (await import('html2canvas')).default;
+    const { jsPDF } = await import('jspdf');
+
+    // 生成canvas
+    const canvas = await html2canvas(pdfContent.value, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
+
+    // 创建PDF
+    const imgWidth = 210; // A4宽度(mm)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    const imgData = canvas.toDataURL('image/png');
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+    // 下载PDF
+    const fileName = `健康打卡记录_${record.date}.pdf`;
+    pdf.save(fileName);
+
+    closeExportDialog();
+    alert('导出成功！');
+  } catch (error) {
+    console.error('导出失败:', error);
+    alert('导出失败，请重试');
+  } finally {
+    isExporting.value = false;
+    exportRecord.value = null;
+  }
+};
+
+// Chart drawing logic
+watch(showResult, (val) => {
+  if (val) nextTick(() => drawHealthChart());
+});
+
+// 监听历史数据变化，自动重绘图表
+watch(checkinHistory, () => {
+  if (showResult.value) {
+    nextTick(() => drawHealthChart());
+  }
+}, { deep: true });
+
 const drawHealthChart = async () => {
   if (!chartCanvas.value) return;
-
   const ctx = chartCanvas.value.getContext('2d');
   if (!ctx) return;
-
-  try {
-    // 获取真实的健康趋势数据
-    const trendsResponse = await getHealthTrends(7);
-    const trendsData = trendsResponse.trends || [];
-
-    // 清空画布
-    ctx.clearRect(0, 0, 400, 200);
-
-    // 绘制坐标轴
-    ctx.strokeStyle = '#e9ecef';
-    ctx.lineWidth = 1;
-
-    // Y轴
-    ctx.beginPath();
-    ctx.moveTo(40, 20);
-    ctx.lineTo(40, 180);
-    ctx.stroke();
-
-    // X轴
-    ctx.beginPath();
-    ctx.moveTo(40, 180);
-    ctx.lineTo(380, 180);
-    ctx.stroke();
-
-    if (trendsData.length > 0) {
-      // 绘制真实数据线
-      ctx.strokeStyle = '#667eea';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-
-      trendsData.forEach((item: HealthTrend, index: number) => {
-        const x = 60 + index * (320 / Math.max(trendsData.length - 1, 1));
-        const y = 180 - ((item.healthScore || 70) - 50) * 2.6; // 缩放到图表高度
-
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-
-        // 绘制数据点
-        ctx.fillStyle = '#667eea';
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 显示数值
-        ctx.fillStyle = '#495057';
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText((item.healthScore || 70).toString(), x, y - 8);
-      });
-
-      ctx.stroke();
-
-      // 添加日期标签
-      ctx.fillStyle = '#6c757d';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-
-      trendsData.forEach((item: HealthTrend, index: number) => {
-        const x = 60 + index * (320 / Math.max(trendsData.length - 1, 1));
-        const date = new Date(item.date);
-        const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-        const dayName = dayNames[date.getDay()];
-        ctx.fillText(dayName || '', x, 195);
-      });
-    } else {
-      // 如果没有数据，显示提示信息
-      ctx.fillStyle = '#6c757d';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('暂无数据，请先进行记录', 200, 100);
-    }
-  } catch (error) {
-    console.error('绘制图表失败:', error);
-    // 显示错误提示
-    ctx.fillStyle = '#dc3545';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('数据加载失败', 200, 100);
-  }
-};
-
-const loadCheckinHistory = async () => {
-  try {
-    // 首选：从趋势接口获取最近 7 天
-    const t = await getHealthTrends(7);
-    const rows = (t?.trends ?? []) as any[];
-
-    checkinHistory.value = rows.map((r: any) => {
-      const date = r.date || r.checkin_date || r.checkinDate || '';
-      const score = r.healthScore ?? r.health_score;
-      const summary = r.summary ?? (score !== undefined ? `健康分 ${score}` : '已记录');
-      return { date, healthScore: score, summary } as HealthTrend;
-    });
-  } catch (err) {
-    console.warn('getHealthTrends(7) 失败，回退到 summary.history:', err);
-    try {
-      const summary = await getCheckinSummary();
-      const list: any[] = summary?.history ?? [];
-      // 只取最近 7 条
-      checkinHistory.value = list.slice(-7).map((r: any) => ({
-        date: r.date || '',
-        healthScore: r.healthScore ?? r.health_score,
-        summary: r.summary ?? '已记录'
-      }));
-    } catch (e) {
-      console.error('加载历史记录失败:', e);
-      checkinHistory.value = [];
-    }
-  }
-};
-
-onMounted(async () => {
-  // 检查今日是否已记录
-  await checkIfAlreadyCheckedIn();
   
-  loadCheckinHistory();
-  // 引用一次以消除"未使用"警告，存在画布时绘制
-  if (chartCanvas.value) {
-    drawHealthChart();
+  const canvas = chartCanvas.value;
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  // 清空画布
+  ctx.clearRect(0, 0, width, height);
+  
+  // 获取最近7天的数据
+  const recentData = checkinHistory.value.slice(0, 7).reverse();
+  if (recentData.length === 0) return;
+  
+  // 设置样式
+  const padding = 40;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  
+  // 绘制背景网格
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (chartHeight / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(width - padding, y);
+    ctx.stroke();
   }
-});
+  
+  // 绘制Y轴标签（健康分）
+  ctx.fillStyle = '#64748b';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const score = 100 - (i * 25);
+    const y = padding + (chartHeight / 4) * i;
+    ctx.fillText(score.toString(), padding - 10, y + 4);
+  }
+  
+  // 计算数据点位置
+  const points: Array<{x: number, y: number, score: number, date: string}> = [];
+  const step = chartWidth / Math.max(recentData.length - 1, 1);
+  
+  recentData.forEach((item, index) => {
+    const score = item.healthScore || 0;
+    const x = padding + step * index;
+    const y = padding + chartHeight - (score / 100) * chartHeight;
+    points.push({ x, y, score, date: item.date });
+  });
+  
+  // 绘制渐变区域
+  if (points.length > 1) {
+    const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+    gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(points[0]!.x, height - padding);
+    points.forEach(point => {
+      ctx.lineTo(point.x, point.y);
+    });
+    ctx.lineTo(points[points.length - 1]!.x, height - padding);
+    ctx.closePath();
+    ctx.fill();
+  }
+  
+  // 绘制折线
+  if (points.length > 0) {
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(points[0]!.x, points[0]!.y);
+    points.forEach(point => {
+      ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+  }
+  
+  // 绘制数据点
+  points.forEach(point => {
+    // 外圈
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 内圈
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  
+  // 绘制X轴日期标签
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  points.forEach(point => {
+    const dateStr = formatDateShort(point.date);
+    ctx.fillText(dateStr, point.x, height - padding + 20);
+  });
+};
 
-// 结果卡片显示后再绘制图表，确保 canvas 已挂载
-watch(showResult, async (v) => {
-  if (v) {
-    await nextTick();
-    drawHealthChart();
-  }
-});
 </script>
 
 <style scoped>
+:root {
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --bg-color: #f0fdf4;
+  --text-main: #1e293b;
+  --text-sub: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
 .checkin-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #ffd89b 0%, #ffebcd 100%);
-  padding: 80px 20px 20px 20px; /* 增加顶部padding给按钮留空间 */
+  background-color: #f0fdf4;
+  padding: 24px;
   position: relative;
+  overflow-x: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #1e293b;
 }
 
-.checkin-container::before {
-  content: '';
+/* Background Decorations */
+.bg-decoration {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/><circle cx="20" cy="80" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+}
+.top-right {
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: rgba(16, 185, 129, 0.15);
+}
+.bottom-left {
+  bottom: -100px;
+  left: -100px;
+  width: 300px;
+  height: 300px;
+  background: rgba(59, 130, 246, 0.1);
 }
 
-/* 左上角返回按钮 */
-.back-top-left {
-  position: fixed;
-  top: 10px;
-  left: 20px;
-  z-index: 9999;
+/* Header */
+.nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 10;
 }
-
-/* 按钮样式 - 黑色风格 */
+.page-title h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  color: #064e3b;
+}
+.page-title p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
 .back-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 24px;
-  border-radius: 30px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  position: relative;
-  overflow: hidden;
+  transition: all 0.2s;
+  color: #64748b;
 }
-
-.back-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.back-btn:hover::before {
-  opacity: 1;
-}
-
 .back-btn:hover {
-  transform: translateY(-2px) translateX(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
-              0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.95);
+  background: #f8fafc;
+  color: #10b981;
 }
+.back-icon { width: 20px; height: 20px; }
 
-.back-btn:active {
-  transform: translateY(0) translateX(0);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.back-icon {
-  width: 18px;
-  height: 18px;
-  transition: transform 0.3s ease;
+/* Main Content Layout */
+.main-content {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 24px;
   position: relative;
-  z-index: 1;
-}
-
-.back-btn:hover .back-icon {
-  transform: translateX(-3px);
-}
-
-.back-btn span {
-  position: relative;
-  z-index: 1;
-}
-
-/* 页面头部 */
-.page-header {
-  text-align: center;
-  margin-bottom: 40px;
-  padding-top: 0; /* 移除padding-top，因为容器已有80px的padding */
-  position: relative;
-  z-index: 1;
-}
-
-.header-content {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(15px);
-  border-radius: 25px;
-  padding: 40px 30px;
+  z-index: 10;
+  max-width: 1200px;
   margin: 0 auto;
-  max-width: 600px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  animation: fadeInUp 0.8s ease-out;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@media (max-width: 900px) {
+  .main-content { grid-template-columns: 1fr; }
 }
 
-.page-title {
-  color: #000;
-  font-size: 2.8rem;
-  margin: 0 0 15px 0;
-  font-weight: 700;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+/* Glass Card Style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  border-radius: 24px;
+  padding: 32px;
 }
 
-.title-icon {
-  margin-right: 15px;
-  display: inline-block;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-10px);
-  }
-  60% {
-    transform: translateY(-5px);
-  }
-}
-
-.page-subtitle {
-  color: rgba(0, 0, 0, 0.7);
-  font-size: 1.2rem;
-  margin: 0;
-  font-weight: 400;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* 记录表单卡片 */
-.checkin-form-card {
-  background: rgba(255, 255, 255, 0.98);
-  border-radius: 25px;
-  padding: 40px;
-  margin: 0 auto 30px;
-  max-width: 800px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  position: relative;
-  z-index: 1;
-  animation: slideInUp 0.6s ease-out;
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.form-header {
+/* Form Panel */
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 35px;
-  padding-bottom: 25px;
-  border-bottom: 3px solid #f0f4f8;
+  margin-bottom: 32px;
+}
+.panel-header h2 { margin: 0; font-size: 20px; color: #1e293b; }
+.date-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+.date-badge svg { width: 14px; height: 14px; }
+
+/* Stepper */
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
   position: relative;
 }
-
-.form-header::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 0;
-  width: 60px;
-  height: 3px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 2px;
-}
-
-.form-header h2 {
-  color: #2d3748;
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-.date {
-  color: #718096;
-  font-weight: 600;
-  font-size: 1.1rem;
-  background: #f7fafc;
-  padding: 8px 16px;
-  border-radius: 15px;
-}
-
-/* 表单组 */
-.form-group {
-  margin-bottom: 25px;
-}
-
-.form-label {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 12px;
-}
-
-.label-icon {
-  margin-right: 8px;
-  font-size: 1.2rem;
-}
-
-/* 滑块 */
-.slider-container {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.slider {
+.step-item {
   flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: #e9ecef;
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #667eea;
-  cursor: pointer;
-}
-
-.slider-value {
-  background: #667eea;
-  color: white;
-  padding: 5px 12px;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  min-width: 80px;
-  text-align: center;
-}
-
-/* 时间输入 */
-.time-input {
-  width: 150px;
-  padding: 10px 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
-
-.time-input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-/* 文字选项样式 */
-.text-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.text-option {
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  background: white;
-}
-
-.text-option:hover {
-  border-color: #667eea;
-  background: #f8f9ff;
-}
-
-.text-option.active {
-  border-color: #667eea;
-  background: #667eea;
-  color: white;
-}
-
-.text-option .option-text {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* 多选标签 */
-.multi-select {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.symptom-tag {
-  padding: 8px 16px;
-  background: #f8f9fa;
-  border: 2px solid #e9ecef;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.symptom-tag:hover {
-  border-color: #667eea;
-}
-
-.symptom-tag.active {
-  background: #667eea;
-  color: white;
-  border-color: #667eea;
-}
-
-/* 表情选项 */
-.emoji-options {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-}
-
-.emoji-option {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
+  position: relative;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 80px;
+  opacity: 0.5;
+  transition: all 0.3s;
 }
-
-.emoji-option:hover {
-  border-color: #667eea;
-  transform: scale(1.05);
-}
-
-.emoji-option.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.emoji {
-  font-size: 2rem;
-  margin-bottom: 5px;
-}
-
-.mood-text {
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-/* 数字输入 */
-.number-input {
+.step-item.active, .step-item.completed { opacity: 1; }
+.step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+  z-index: 2;
+  transition: all 0.3s;
 }
-
-.adjust-btn {
-  width: 40px;
-  height: 40px;
-  border: 2px solid #667eea;
-  background: white;
-  color: #667eea;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: bold;
-  transition: all 0.3s ease;
+.step-item.active .step-circle {
+  border-color: #10b981;
+  background: #ecfdf5;
+  color: #10b981;
+  transform: scale(1.1);
 }
-
-.adjust-btn:hover {
-  background: #667eea;
+.step-item.completed .step-circle {
+  background: #10b981;
+  border-color: #10b981;
   color: white;
 }
-
-.number-field {
-  width: 80px;
-  padding: 10px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  text-align: center;
-  font-size: 1rem;
-}
-
-.number-field:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.unit {
-  color: #6c757d;
-  font-weight: 500;
-}
-
-/* 文本域 */
-.diet-textarea {
+.step-line {
+  position: absolute;
+  top: 18px;
+  left: 50%;
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-family: inherit;
-  resize: vertical;
-  transition: border-color 0.3s ease;
+  height: 2px;
+  background: #e2e8f0;
+  z-index: 1;
 }
+.step-item.completed .step-line { background: #10b981; }
 
-.diet-textarea:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-/* 单选按钮 */
-.radio-options {
-  display: flex;
-  gap: 20px;
-}
-
-.radio-option {
+/* Form Controls */
+.form-group { margin-bottom: 32px; }
+.input-label {
   display: flex;
   align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #334155;
+}
+.icon-box.sm {
+  width: 28px; height: 28px;
+  background: #e0f2fe;
+  color: #0284c7;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-box.sm svg { width: 16px; height: 16px; }
+.required { color: #ef4444; margin-left: 4px; }
+
+/* Exercise Icon Animation */
+.exercise-icon-box {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.exercise-icon-box:hover {
+  background: #dbeafe;
+  color: #2563eb;
+  transform: scale(1.1) rotate(-5deg);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.exercise-icon-box:active {
+  transform: scale(0.95);
+  background: #bfdbfe;
+}
+
+/* Custom Inputs */
+.slider-wrapper { padding: 0 10px; }
+.slider-value { text-align: center; font-size: 24px; font-weight: 700; color: #10b981; margin-bottom: 12px; }
+.custom-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  background-image: linear-gradient(#10b981, #10b981);
+  background-repeat: no-repeat;
+  appearance: none;
+}
+.custom-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #10b981;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-.radio-option input[type="radio"] {
-  margin-right: 8px;
-  transform: scale(1.2);
+/* Custom Inputs */
+.custom-input {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  width: 100%;
+  font-size: 14px;
+  color: #334155;
+  background: white;
 }
-
-.radio-text {
-  font-size: 1rem;
-  color: #2c3e50;
+.custom-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
-
-/* 提交按钮 */
-.form-actions {
+.custom-input.sm {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.time-input {
+  font-size: 24px;
+  font-weight: 700;
+  color: #334155;
   text-align: center;
-  margin-top: 30px;
+  width: auto;
+  min-width: 140px;
+  background: #f8fafc;
+  letter-spacing: 1px;
 }
 
-.submit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.tags-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.tag-item {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.tag-item:hover { border-color: #10b981; color: #10b981; }
+.tag-item.active { background: #10b981; color: white; border-color: #10b981; }
+
+.counter-input {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.counter-btn {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: #f1f5f9;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.counter-btn:hover { background: #e2e8f0; }
+.counter-display {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.counter-display input {
+  width: 60px;
+  border: none;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  outline: none;
+}
+
+.custom-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+.custom-textarea:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+
+/* Buttons */
+.form-footer {
+  display: flex;
+  align-items: center;
+  margin-top: 40px;
+}
+.spacer { flex: 1; }
+.btn-primary {
+  background: #10b981;
   color: white;
   border: none;
-  padding: 15px 40px;
-  border-radius: 25px;
-  font-size: 1.1rem;
+  padding: 12px 32px;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 200px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
 }
-
-.submit-btn:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled) {
+  background: #059669;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: #f8fafc; color: #334155; }
+
+.text-btn {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.text-btn:hover {
+  background: #f8fafc;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+.text-btn:active {
+  transform: scale(0.98);
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.btn-primary.sm,
+.btn-secondary.sm {
+  padding: 8px 20px;
+  font-size: 14px;
 }
 
-.submit-btn.loading {
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-/* 结果卡片 */
-.result-card {
+/* History Panel */
+.history-panel .panel-header h3 { font-size: 20px; margin: 0; font-weight: 600; color: #1e293b; }
+.icon-btn {
   background: white;
-  border-radius: 20px;
-  padding: 30px;
-  margin: 0 auto;
-  max-width: 900px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+.icon-btn:hover, .icon-btn.active { background: #f1f5f9; color: #10b981; border-color: #10b981; }
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* Filter Panel */
+.filter-panel {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-row.actions {
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.filter-row span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.custom-input.sm {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.custom-input.sm:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 24px;
+}
+.history-card {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  padding-right: 50px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+.history-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: #10b981;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #fee2e2;
+  color: #ef4444;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.delete-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.history-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: #ef4444;
+  color: white;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.card-left { display: flex; align-items: center; gap: 16px; }
+.record-date { font-weight: 600; color: #334155; font-size: 16px; }
+.record-mood svg { width: 32px; height: 32px; color: #64748b; }
+.card-right { text-align: right; }
+.score-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.mini-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  margin-left: 12px;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.mini-tag svg { width: 14px; height: 14px; }
+
+/* Result View */
+.result-view {
+  width: 100%;
+}
 .result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #f8f9fa;
-}
-
-.result-header h2 {
-  color: #2c3e50;
-  margin: 0;
-  font-size: 1.8rem;
-}
-
-.analysis-time {
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.result-content {
-  margin-bottom: 30px;
-}
-
-/* 各个结果部分 */
-.summary-section,
-.chart-section,
-.suggestions-section,
-.plan-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 15px;
-}
-
-.summary-section h3,
-.chart-section h3,
-.suggestions-section h3,
-.plan-section h3 {
-  display: flex;
-  align-items: center;
-  color: #2c3e50;
-  margin: 0 0 15px 0;
-  font-size: 1.3rem;
-}
-
-.section-icon {
-  margin-right: 10px;
-  font-size: 1.4rem;
-}
-
-.summary-text,
-.plan-content {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #495057;
-}
-
-/* 图表容器 */
-.chart-container {
+  margin-bottom: 40px;
   background: white;
-  border-radius: 10px;
-  padding: 20px;
-  text-align: center;
+  padding: 32px;
+  border-radius: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
+.title-group { display: flex; align-items: center; gap: 20px; }
+.icon-box.success { background: #dcfce7; color: #15803d; }
+.icon-box.danger { background: #fee2e2; color: #dc2626; }
+.icon-box.xl { width: 72px; height: 72px; border-radius: 24px; }
+.icon-box.xl svg { width: 36px; height: 36px; }
 
-/* 建议列表 */
-.suggestions-list {
-  display: grid;
-  gap: 15px;
-}
-
-.suggestion-item {
-  display: flex;
-  align-items: flex-start;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.suggestion-icon {
-  font-size: 1.5rem;
-  margin-right: 15px;
-  margin-top: 2px;
-}
-
-.suggestion-content h4 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-  font-size: 1.1rem;
-}
-
-.suggestion-content p {
-  margin: 0;
-  color: #6c757d;
-  line-height: 1.5;
-}
-
-/* 操作按钮 */
-.result-actions {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-}
-
-.secondary-btn,
-.primary-btn {
-  padding: 12px 30px;
-  border-radius: 20px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.secondary-btn {
-  background: white;
-  color: #667eea;
-  border: 2px solid #667eea;
-}
-
-.secondary-btn:hover {
-  background: #667eea;
-  color: white;
-}
-
-.primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.btn-danger {
+  background: #ef4444;
   color: white;
   border: none;
-}
-
-.primary-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-}
-
-/* 历史记录（旧块样式保留用于通用类，但不再使用该块） */
-.history-section {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 25px;
-  margin: 0 auto;
-  max-width: 800px;
-}
-
-.history-section h3 {
-  color: white;
-  margin: 0 0 20px 0;
-  font-size: 1.5rem;
-}
-
-.history-list {
-  display: grid;
-  gap: 10px;
-}
-
-.history-item {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px 20px;
+  padding: 12px 32px;
   border-radius: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* 已记录样式2 */
-.checked-modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(17, 24, 39, 0.4);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 1000;
-}
-.checked-modal {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(16, 24, 40, 0.2);
-  width: 420px;
-  padding: 24px 20px;
-  text-align: center;
-  animation: slideIn 260ms ease-out;
-}
-.checked-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
-}
-.checked-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #101828;
-  margin: 0 0 8px 0;
-}
-.checked-message {
-  font-size: 14px;
-  color: #475467;
-  margin-bottom: 8px;
-}
-.checked-sub-message {
-  font-size: 13px;
-  color: #98A2B3;
-  margin-bottom: 16px;
-}
-.checked-actions {
-  display: flex; gap: 12px; justify-content: center;
-}
-.btn-primary {
-  background: #4f73ff; color: #fff; border: none;
-  padding: 10px 16px; border-radius: 10px; cursor: pointer;
-}
-.btn-secondary {
-  background: #e7eaf6; color: #344054; border: none;
-  padding: 10px 16px; border-radius: 10px; cursor: pointer;
-}
-@keyframes slideIn {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-/* 成功提示弹窗样式 */
-.success-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-}
-
-.success-modal {
-  background: white;
-  border-radius: 20px;
-  padding: 40px;
-  max-width: 400px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.4s ease;
-}
-
-.success-animation {
-  margin-bottom: 30px;
-}
-
-.success-checkmark {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: block;
-  stroke-width: 2;
-  stroke: #4CAF50;
-  stroke-miterlimit: 10;
-  margin: 0 auto 20px;
-  box-shadow: inset 0px 0px 0px #4CAF50;
-  animation: fill 0.4s ease-in-out 0.4s forwards, scale 0.3s ease-in-out 0.9s both;
-  position: relative;
-}
-
-.success-checkmark .check-icon {
-  width: 80px;
-  height: 80px;
-  position: relative;
-  border-radius: 50%;
-  box-sizing: content-box;
-  border: 4px solid #4CAF50;
-}
-
-.success-checkmark .check-icon::before {
-  top: 3px;
-  left: -2px;
-  width: 30px;
-  transform-origin: 100% 50%;
-  border-radius: 100px 0 0 100px;
-}
-
-.success-checkmark .check-icon::after {
-  top: 0;
-  left: 30px;
-  width: 60px;
-  transform-origin: 0 50%;
-  border-radius: 0 100px 100px 0;
-  animation: rotate-circle 4.25s ease-in;
-}
-
-.success-checkmark .check-icon::before,
-.success-checkmark .check-icon::after {
-  content: '';
-  height: 100px;
-  position: absolute;
-  background: white;
-  transform: rotate(-45deg);
-}
-
-.success-checkmark .icon-line {
-  height: 5px;
-  background-color: #4CAF50;
-  display: block;
-  border-radius: 2px;
-  position: absolute;
-  z-index: 10;
-}
-
-.success-checkmark .icon-line.line-tip {
-  top: 46px;
-  left: 14px;
-  width: 25px;
-  transform: rotate(45deg);
-  animation: icon-line-tip 0.75s;
-}
-
-.success-checkmark .icon-line.line-long {
-  top: 38px;
-  right: 8px;
-  width: 47px;
-  transform: rotate(-45deg);
-  animation: icon-line-long 0.75s;
-}
-
-.success-content {
-  margin-bottom: 30px;
-}
-
-.success-title {
-  color: #2c3e50;
-  font-size: 1.8rem;
-  margin: 0 0 10px 0;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
 }
-
-.success-message {
-  color: #6c757d;
-  font-size: 1rem;
-  margin: 0 0 20px 0;
-  line-height: 1.5;
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.success-details {
+.score-circle {
+  width: 96px; height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+  border: 4px solid #ecfdf5;
 }
+.score-val { font-size: 32px; font-weight: 800; line-height: 1; }
+.score-lbl { font-size: 12px; opacity: 0.9; }
 
-.detail-item {
+.info-section {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+.info-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+.info-section.primary { border-top: 4px solid #10b981; }
+.info-section.danger { border-top: 4px solid #ef4444; background: #fff1f2; }
+.info-section h3 {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 0.9rem;
-  color: #495057;
+  gap: 12px;
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #1e293b;
+  font-weight: 600;
+}
+.info-section h3 svg { width: 24px; height: 24px; color: #10b981; }
+
+.chart-box {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+.chart-box h3 {
+  margin: 0 0 24px 0;
+  font-size: 18px;
+  color: #1e293b;
+  font-weight: 600;
+}
+.chart-box canvas {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
-.detail-icon {
-  font-size: 1.1rem;
-}
-
-.success-actions {
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
   display: flex;
-  gap: 15px;
+  align-items: center;
   justify-content: center;
+  z-index: 100;
 }
-
-.btn-continue,
-.btn-home {
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
+.modal-card {
+  background: white;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
-
-.btn-continue {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 2px solid #e9ecef;
-}
-
-.btn-continue:hover {
-  background: #e9ecef;
-  color: #495057;
-  transform: translateY(-1px);
-}
-
-/* 双栏布局与右侧历史卡片样式 */
-.checkin-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
-  align-items: start;
-  margin-top: 12px;
-}
-
-.left-panel {
-  min-width: 0;
-}
-
-.right-panel {
-  position: sticky;
-  top: 84px; /* 保持在视口内 */
-  align-self: start;
-}
-
-/* 右侧历史卡片 */
-.history-panel {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 18px 16px;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-}
-
-.history-title {
-  margin: 0 0 12px 0;
-  color: #2c3e50;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.history-list {
-  display: grid;
-  gap: 10px;
-}
-
-.history-item {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8f9fa;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
+  margin-bottom: 24px;
+}
+.close-btn {
+  background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;
 }
 
-.history-date {
-  color: #495057;
+/* Utils */
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.text-center { text-align: center; }
+.btn-group-center { display: flex; justify-content: center; gap: 16px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+
+/* ========== 图标优化样式 ========== */
+
+/* 情绪状态选择器 - 简约风格 */
+.mood-selector {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  margin-top: 24px;
+}
+
+.mood-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 8px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  border: 2px solid transparent;
+}
+
+.mood-item:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: translateY(-4px);
+}
+
+.mood-item.active {
+  background: #ecfdf5;
+  border-color: #10b981;
+}
+
+.mood-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  color: #94a3b8;
+}
+
+.mood-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 1.5;
+  transition: all 0.3s ease;
+  stroke: #94a3b8;
+  fill: none;
+}
+
+/* 选中状态 */
+.mood-item.active .mood-icon {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: scale(1.1);
+}
+
+.mood-item.active .mood-icon svg {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.mood-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.mood-item.active .mood-name {
+  color: #10b981;
   font-weight: 600;
+}
+
+
+/* 图标盒子样式 - 增强版 */
+.icon-box {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border-radius: 12px;
+  flex-shrink: 0;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.icon-box svg {
+  width: 24px;
+  height: 24px;
+  stroke: #10B981;
+  stroke-width: 2;
+  transition: all 0.3s;
+}
+
+.icon-box:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+}
+
+/* 运动时长图标特殊样式 */
+.form-group:has(.counter-input) .icon-box {
+  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.form-group:has(.counter-input) .icon-box svg {
+  stroke: #3B82F6;
+}
+
+.form-group:has(.counter-input) .icon-box:hover {
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* 情绪状态标签图标样式 */
+.form-group:has(.mood-selector) .icon-box {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+}
+
+.form-group:has(.mood-selector) .icon-box svg {
+  stroke: #EF4444;
+}
+
+.form-group:has(.mood-selector) .icon-box:hover {
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .mood-selector {
+    gap: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    padding-bottom: 16px; /* Space for scrollbar if needed */
+  }
+  
+  .mood-item {
+    min-width: 70px; /* Ensure items don't get too small */
+    padding: 12px 6px;
+  }
+  
+  .mood-icon {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .mood-name {
+    font-size: 12px;
+  }
+  
+  .icon-box {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .icon-box svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mood-item {
+    padding: 10px 4px;
+  }
+  
+  .mood-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 动画效果 */
+@keyframes moodPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.mood-item.active .mood-icon {
+  animation: moodPulse 2s ease-in-out infinite;
+}
+
+/* 无障碍支持 */
+.mood-item:focus {
+  outline: 2px solid #10B981;
+  outline-offset: 2px;
+}
+
+.mood-item:focus-visible {
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  /* 适配暗色模式，但保持原有浅色主题的一致性，或者可以简单适配 */
+  /* 目前Checkin页面主要基于浅色设计，这里做简单适配 */
+}
+
+/* Analysis Result & Modal Styles */
+.risk-list { list-style: none; padding: 0; margin: 0; }
+.risk-list li { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 14px; color: #475569; }
+.risk-badge {
+  font-size: 11px; padding: 2px 6px; border-radius: 4px;
+  background: #fee2e2; color: #ef4444; font-weight: 600;
+  flex-shrink: 0;
+}
+.risk-badge.high { background: #ef4444; color: white; }
+.risk-badge.medium { background: #fee2e2; color: #b91c1c; }
+
+.suggestion-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.sug-card { background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; }
+.sug-card h4 { margin: 0 0 8px 0; font-size: 15px; color: #1e293b; }
+.sug-card p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.5; }
+
+.task-list { list-style: none; padding: 0; margin: 0; }
+.task-list li { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 15px; color: #334155; }
+.task-num {
+  width: 24px; height: 24px; background: #fff7ed; color: #f97316;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px; border: 1px solid #ffedd5;
+}
+
+/* Modal Specific */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  text-align: center;
+}
+.detail-item .icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}
+.detail-item .icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+.detail-item span:last-child {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.modal-content .value.highlight {
+  font-size: 32px;
+  font-weight: 800;
+  color: #10b981;
+  display: block;
+  text-align: center;
+  margin: 10px 0;
+}
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.detail-row:last-child { border-bottom: none; }
+
+.detail-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #f1f5f9; }
+.detail-section h4 { margin: 0 0 12px 0; font-size: 15px; color: #64748b; }
+.highlight-section { background: #f0fdf4; padding: 16px; border-radius: 12px; border: none; }
+.highlight-section h4 { color: #10b981; }
+
+.mini-suggestions { display: flex; flex-direction: column; gap: 12px; }
+.mini-sug-item { background: #f8fafc; padding: 12px; border-radius: 8px; }
+.mini-sug-item strong { display: block; font-size: 14px; color: #334155; margin-bottom: 4px; }
+.mini-sug-item p { margin: 0; font-size: 13px; color: #64748b; }
+
+/* 导出对话框样式 */
+.export-dialog { max-width: 600px; max-height: 80vh; }
+.export-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
+.export-hint { margin: 0 0 16px 0; color: #64748b; font-size: 14px; }
+.export-list { display: flex; flex-direction: column; gap: 12px; }
+
+.export-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.export-item:hover { border-color: #10b981; background: #f0fdf4; }
+.export-item.selected { border-color: #10b981; background: #f0fdf4; }
+
+.export-radio { display: none; }
+
+.export-item-content { flex: 1; }
+
+.export-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.export-date { font-weight: 600; color: #1e293b; font-size: 15px; }
+
+.export-score {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.export-item-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.info-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.info-tag svg { width: 14px; height: 14px; }
+
+.export-check {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+  transition: all 0.2s;
+}
+
+.export-item.selected .export-check {
+  border-color: #10b981;
+  background: #10b981;
+}
+
+.export-check svg {
+  width: 16px;
+  height: 16px;
+  stroke: white;
+}
+
+/* PDF内容样式（隐藏但用于生成） */
+.pdf-content {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 210mm;
+  background: white;
+  padding: 20mm;
+  font-family: 'Microsoft YaHei', 'SimSun', sans-serif;
+}
+
+.pdf-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #10b981;
+}
+
+.pdf-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  color: #1e293b;
+}
+
+.pdf-date {
+  margin: 0;
+  font-size: 16px;
+  color: #64748b;
+}
+
+.pdf-section {
+  margin-bottom: 25px;
+  page-break-inside: avoid;
+}
+
+.pdf-section h2 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #10b981;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.pdf-score-box {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.pdf-score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid;
+}
+
+.pdf-score-circle.bg-success { border-color: #10b981; background: #f0fdf4; }
+.pdf-score-circle.bg-primary { border-color: #3b82f6; background: #eff6ff; }
+.pdf-score-circle.bg-warning { border-color: #f59e0b; background: #fffbeb; }
+.pdf-score-circle.bg-danger { border-color: #ef4444; background: #fef2f2; }
+
+.pdf-score-value {
+  font-size: 36px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.pdf-score-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.pdf-data-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.pdf-data-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.pdf-label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.pdf-value {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.pdf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pdf-tag {
+  padding: 6px 12px;
+  background: #f0fdf4;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #10b981;
+}
+
+.pdf-text {
+  line-height: 1.8;
+  color: #334155;
+  font-size: 14px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.pdf-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pdf-suggestion-item {
+  padding: 12px;
+  background: #f8fafc;
+  border-left: 4px solid #10b981;
+  border-radius: 4px;
+  line-height: 1.6;
+  font-size: 14px;
+  color: #334155;
+}
+
+.pdf-suggestion-item strong {
+  color: #10b981;
+}
+
+.pdf-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 2px solid #e2e8f0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.pdf-footer p {
+  margin: 5px 0;
+}
+
+/* AI生成提示样式 */
+.ai-generating-modal {
+  max-width: 450px;
+  padding: 40px 30px;
+}
+
+.ai-icon-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-icon-box {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  animation: aiPulse 2s ease-in-out infinite;
+}
+
+.ai-icon-box svg {
+  width: 40px;
+  height: 40px;
+  stroke: white;
+  stroke-width: 2.5;
+}
+
+@keyframes aiPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.ai-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border: 3px solid #10b981;
+  border-radius: 50%;
+  opacity: 0;
+  animation: aiRingPulse 2s ease-out infinite;
+}
+
+.ai-pulse-ring.delay-1 {
+  animation-delay: 0.5s;
+}
+
+.ai-pulse-ring.delay-2 {
+  animation-delay: 1s;
+}
+
+@keyframes aiRingPulse {
+  0% {
+    width: 80px;
+    height: 80px;
+    opacity: 1;
+  }
+  100% {
+    width: 120px;
+    height: 120px;
+    opacity: 0;
+  }
+}
+
+.ai-title {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.ai-subtitle {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.ai-dots {
+  display: inline-block;
+  margin-left: 4px;
+}
+
+.ai-dots .dot {
+  animation: aiDotBlink 1.4s infinite;
+  opacity: 0;
+}
+
+.ai-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ai-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes aiDotBlink {
+  0%, 20% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.ai-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.ai-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 50%, #10b981 100%);
+  background-size: 200% 100%;
+  animation: aiProgressMove 1.5s linear infinite;
+  border-radius: 3px;
+}
+
+@keyframes aiProgressMove {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ai-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: #94a3b8;
   font-size: 13px;
 }
 
-.history-summary {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.ai-hint svg {
+  width: 16px;
+  height: 16px;
+  stroke: #94a3b8;
 }
 
-.history-score {
-  background: #e9f5ff;
-  color: #0b6dbe;
-  border: 1px solid #cfe8ff;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.history-text {
-  color: #6c757d;
-  font-size: 12px;
-}
-
-/* 移动端：自动回到单列 */
-@media (max-width: 768px) {
-  .checkin-container {
-    padding: 80px 15px 15px 15px; /* 保持顶部padding给按钮留空间 */
-  }
-  .checkin-main {
-    grid-template-columns: 1fr;
-  }
-  .right-panel {
-    position: static;
-  }
-}
 </style>

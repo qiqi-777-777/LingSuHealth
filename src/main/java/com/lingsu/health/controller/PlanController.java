@@ -27,4 +27,18 @@ public class PlanController {
         
         return planService.generatePersonalizedPlan(username.trim());
     }
+    
+    @PostMapping("/ai-dynamic")
+    public Map<String, Object> generateAIDynamicPlan(HttpServletRequest request) {
+        String username = request.getHeader("X-Username");
+        
+        if (username == null || username.trim().isEmpty()) {
+            return Map.of(
+                "success", false,
+                "message", "未登录"
+            );
+        }
+        
+        return planService.generateAIDynamicPlan(username.trim());
+    }
 }

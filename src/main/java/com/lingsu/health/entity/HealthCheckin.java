@@ -50,6 +50,24 @@ public class HealthCheckin {
     @TableField("followed_plan")
     private Boolean followedPlan;
     
+    @TableField("health_score")
+    private Integer healthScore;
+
+    @TableField("analysis_summary")
+    private String analysisSummary;
+
+    @TableField("analysis_suggestions")
+    private String analysisSuggestions; // JSON字符串
+
+    @TableField("analysis_risks")
+    private String analysisRisks; // JSON字符串
+
+    @TableField("analysis_tomorrow_plan")
+    private String analysisTomorrowPlan;
+
+    @TableField("analysis_tomorrow_tasks")
+    private String analysisTomorrowTasks; // JSON字符串
+    
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
