@@ -231,7 +231,7 @@
                </div>
                <div>
                  <h2>AI健康分析报告</h2>
-                 <p>{{ formatTime(new Date()) }}</p>
+                <p>{{ formatTime(new Date()) }}</p>
                </div>
              </div>
              <div class="score-display">
@@ -245,11 +245,11 @@
            <div class="result-body">
               <!-- 智能总结 -->
               <div class="info-section primary">
-                <h3>
+                 <h3>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.bulb" /></svg>
-                  智能总结
+                  今日总结
                 </h3>
-                <p>{{ analysisResult.summary }}</p>
+                <p>{{ sanitizeText(analysisResult.summary) }}</p>
               </div>
   
               <!-- 风险提示 -->
@@ -280,16 +280,24 @@
                 </div>
               </div>
               
-              <!-- 明日重点 -->
+              <div v-if="analysisResult.tomorrowPlan" class="info-section primary">
+                <h3>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.calendar" /></svg>
+                  明日建议
+                </h3>
+                <p>{{ sanitizeText(analysisResult.tomorrowPlan) }}</p>
+              </div>
+              
+              <!-- 明日提醒 -->
               <div v-if="analysisResult.tomorrowTasks && analysisResult.tomorrowTasks.length" class="info-section warning">
                  <h3>
                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path :d="iconPaths.calendar" /></svg>
-                   明日重点
+                   明日提醒
                  </h3>
                  <ul class="task-list">
                    <li v-for="(task, idx) in analysisResult.tomorrowTasks" :key="idx">
                      <span class="task-num">{{ idx + 1 }}</span>
-                     {{ task }}
+                    {{ sanitizeText(task) }}
                    </li>
                  </ul>
               </div>
@@ -301,10 +309,10 @@
               </div>
            </div>
   
-           <div class="result-footer">
-             <button @click="resetForm" class="btn-secondary">再次记录</button>
-             <button @click="goHome" class="btn-primary">返回首页</button>
-           </div>
+          <div class="result-footer">
+            <button @click="resetForm" class="btn-secondary">再次记录</button>
+            <button @click="goHome" class="btn-primary">返回首页</button>
+          </div>
          </div>
       </div>
 
@@ -886,6 +894,73 @@ const getCurrentDate = () => {
 
 const formatTime = (date: Date) => date.toLocaleString('zh-CN');
 
+const sanitizeText = (text: string) => {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/^\s*[*•-]\s*/gm, '');
+};
+
+const buildTodaySummary = (data: typeof checkinData.value) => {
+  const mood = getMoodInfo(data.mood).name;
+  const symptomText = data.symptoms.length ? `症状：${data.symptoms.join('、')}` : '无明显不适';
+  const dietText = data.dietNotes ? '已记录饮食' : '饮食待记录';
+  return `今日睡眠${data.sleepHours}小时，入睡${data.sleepTime}，情绪${mood}，运动${data.exerciseMinutes}分钟，${symptomText}，${dietText}。`;
+};
+
+const buildTomorrowPlan = (data: typeof checkinData.value) => {
+  const hints: string[] = [];
+  if (data.sleepHours < 7) hints.push('今晚提前入睡，保证7小时以上睡眠');
+  if (data.exerciseMinutes < 30) hints.push('安排20-30分钟轻量运动');
+  if (data.symptoms.includes('失眠')) hints.push('睡前放松，减少电子屏幕使用');
+  if (!data.dietNotes) hints.push('明日三餐清淡并记录饮食');
+  if (!hints.length) hints.push('保持当前节奏，适度运动与清淡饮食');
+  return hints.join('，') + '。';
+};
+
+const buildTomorrowTasks = (data: typeof checkinData.value) => {
+  const tasks: string[] = [];
+  if (data.sleepHours < 7) tasks.push('今晚提前入睡，保证7小时以上睡眠');
+  if (data.exerciseMinutes < 30) tasks.push('安排轻量运动20-30分钟');
+  if (data.symptoms.includes('便秘')) tasks.push('增加膳食纤维与饮水量');
+  if (data.symptoms.includes('失眠')) tasks.push('睡前热水泡脚10分钟');
+  if (!data.dietNotes) tasks.push('明日记录三餐，优先清淡少油');
+  if (!tasks.length) tasks.push('保持规律作息与适度拉伸放松');
+  return tasks.slice(0, 4);
+};
+
+const buildFallbackSuggestions = (data: typeof checkinData.value): Suggestion[] => {
+  const suggestions: Suggestion[] = [];
+  if (data.sleepHours < 7) {
+    suggestions.push({
+      icon: '',
+      title: '睡眠优化',
+      content: '睡前减少刺激性内容，提前30分钟上床，提升恢复质量。'
+    });
+  }
+  if (data.exerciseMinutes < 30) {
+    suggestions.push({
+      icon: '',
+      title: '运动建议',
+      content: '选择快走或舒缓拉伸，坚持20-30分钟。'
+    });
+  }
+  if (!data.dietNotes) {
+    suggestions.push({
+      icon: '',
+      title: '饮食记录',
+      content: '明日三餐尽量清淡，记下主食与蔬菜比例。'
+    });
+  }
+  if (!suggestions.length) {
+    suggestions.push({
+      icon: '',
+      title: '保持状态',
+      content: '继续维持良好作息与适度运动，关注身体反馈。'
+    });
+  }
+  return suggestions.slice(0, 3);
+};
+
 // Actions
 const goHome = () => router.push('/dashboard');
 
@@ -1005,13 +1080,17 @@ const submitCheckin = async () => {
       // 隐藏AI生成提示
       showAIGenerating.value = false;
       
-      // Construct result (simplified for brevity, assume backend returns valid data)
+      const fallbackSummary = buildTodaySummary(submitData);
+      const fallbackTomorrowPlan = buildTomorrowPlan(submitData);
+      const fallbackTomorrowTasks = buildTomorrowTasks(submitData);
+      const fallbackSuggestions = buildFallbackSuggestions(submitData);
+      
       analysisResult.value = {
-        summary: response.summary || '记录成功',
-        suggestions: response.suggestions || [],
+        summary: response.summary || fallbackSummary,
+        suggestions: response.suggestions?.length ? response.suggestions : fallbackSuggestions,
         healthScore: response.healthScore,
-        tomorrowPlan: response.tomorrowPlan || '',
-        tomorrowTasks: response.tomorrowTasks || [],
+        tomorrowPlan: response.tomorrowPlan || fallbackTomorrowPlan,
+        tomorrowTasks: response.tomorrowTasks?.length ? response.tomorrowTasks : fallbackTomorrowTasks,
         risks: response.risks || []
       };
       
@@ -1367,6 +1446,7 @@ const drawHealthChart = async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   border-radius: 24px;
   padding: 32px;
+  min-height: 800px; /* 设置最小高度，防止内容切换时页面跳动 */
 }
 
 /* Form Panel */
