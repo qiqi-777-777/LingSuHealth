@@ -218,11 +218,13 @@ function handleClickOutside(event: Event) {
   display: flex;
   gap: 20px;
   width: 100%;
+  align-items: stretch; /* 让子元素高度一致 */
 }
 
 .widget-wrapper.compact {
   flex: 1;
   min-width: 0;
+  height: 240px; /* 设置固定高度 */
 }
 
 .feature-cards-inner {
