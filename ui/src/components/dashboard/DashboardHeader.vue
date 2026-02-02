@@ -57,24 +57,6 @@
           </svg>
           <span>AI助手</span>
         </a>
-        <a href="#" @click.prevent="$emit('navigate', '/plan')" class="nav-link">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 4h16v16H4zM8 2v4M16 2v4M4 10h16"/>
-          </svg>
-          <span>个性化方案</span>
-        </a>
-        <a href="#" @click.prevent="$emit('navigate', '/assessment')" class="nav-link">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
-          </svg>
-          <span>测评</span>
-        </a>
-        <a href="#" @click.prevent="$emit('navigate', '/dashboard-metrics')" class="nav-link">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-          </svg>
-          <span>仪表盘</span>
-        </a>
         <!-- 原有链接保留 -->
         <a href="#" @click.prevent="$emit('navigate', '/products')" class="nav-link">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
