@@ -8,7 +8,8 @@ import {
   updateKnowledge,
   deleteKnowledge,
   uploadKnowledgeImage,
-  getAllInteractions
+  getAllInteractions,
+  getSceneTags
 } from '../services/api';
 
 defineOptions({ name: 'KnowledgeView' });
@@ -50,6 +51,35 @@ const selectedCategory = ref('');
 const selectedSeason = ref('');
 const effectKeyword = ref('');
 const selectedTagsInput = ref('');
+type SceneKey = 'people' | 'symptom' | 'season' | 'goal';
+type IconKey = 'user' | 'symptom' | 'season' | 'target' | 'search' | 'reset' | 'interactions' | 'close' | 'add' | 'image' | 'tcm' | 'nutrition' | 'usage' | 'check' | 'warning' | 'empty' | 'favorite' | 'favoriteFilled' | 'effect' | 'science' | 'recommendation' | 'chevronDown' | 'chevronUp';
+const sceneTabs: Array<{ key: SceneKey; label: string; icon: IconKey }> = [
+  { key: 'people', label: '人群', icon: 'user' },
+  { key: 'symptom', label: '症状', icon: 'symptom' },
+  { key: 'season', label: '季节', icon: 'season' },
+  { key: 'goal', label: '目标', icon: 'target' }
+];
+// 场景标签动态数据（从后端API加载）
+interface SceneTag {
+  id: number;
+  name: string;
+  description?: string;
+  priority?: number;
+}
+const sceneOptions = ref<Record<SceneKey, SceneTag[]>>({
+  people: [],
+  symptom: [],
+  season: [],
+  goal: []
+});
+const sceneLoading = ref(false);
+const sceneActive = ref<SceneKey>('people');
+const selectedPeople = ref('');
+const selectedSymptom = ref('');
+const selectedGoal = ref('');
+const hasSceneSelection = computed(() => {
+  return Boolean(selectedPeople.value || selectedSymptom.value || selectedGoal.value || selectedSeason.value);
+});
 const sortOption = ref('default');
 const loading = ref(false);
 const errorMessage = ref('');
@@ -111,6 +141,103 @@ function getItemTags(item: KnowledgeItem) {
     if (tag && tag.trim()) set.add(tag.trim());
   });
   return Array.from(set);
+}
+
+// 标签名 -> 匹配关键词的映射表
+// 用于将场景标签转换为可在食材药材属性中搜索的关键词
+const tagKeywordMap: Record<string, string[]> = {
+  // 症状维度
+  '失眠': ['安神', '养心', '失眠', '助眠', '宁心', '心悸', '惊悸', '心神不宁'],
+  '浅睡易醒': ['安神', '养心', '宁心'],
+  '晨起疲惫': ['益气', '补气', '提神', '精力'],
+  '焦虑紧张': ['安神', '解郁', '舒肝', '疏肝', '定志'],
+  '情绪低落': ['解郁', '疏肝', '舒肝', '理气', '开郁'],
+  '头痛头胀': ['止痛', '清热', '疏风', '头痛', '眩晕', '平肝'],
+  '肩颈僵硬': ['活血', '通络', '舒筋', '止痛', '祛风'],
+  '久坐腰痛': ['补肾', '强筋', '壮腰', '腰膝', '活血'],
+  '乏力倦怠': ['益气', '补气', '健脾', '补中', '体倦', '乏力'],
+  '胃胀消化不良': ['健脾', '理气', '消食', '和胃', '化湿', '脾胃', '运化'],
+  '便秘排便困难': ['润肠', '通便', '便秘', '泻下'],
+  '食欲不振': ['健脾', '开胃', '消食', '理气'],
+  '口干咽痛': ['生津', '润燥', '清热', '止渴', '润喉', '咽喉'],
+  '易感冒': ['益气', '固表', '防风', '免疫'],
+  '皮肤干燥瘙痒': ['润燥', '养血', '润肤', '止痒'],
+  '女性经期不适': ['调经', '活血', '止痛', '补血', '温经', '痛经'],
+  // 季节维度
+  '春季养生': ['春', '疏肝', '养阳', '升发'],
+  '夏季防暑': ['夏', '清热', '解暑', '消暑', '清凉'],
+  '秋季润燥': ['秋', '润肺', '润燥', '养阴', '生津'],
+  '冬季御寒': ['冬', '温补', '温阳', '散寒', '御寒', '补肾'],
+  // 目标维度
+  '减脂塑形': ['消食', '化湿', '利水', '代谢'],
+  '增肌提能': ['补气', '益气', '强壮', '增力'],
+  '体重管理': ['消食', '化湿', '健脾', '代谢'],
+  '控糖控压': ['降压', '降糖', '控糖', '血压', '血糖'],
+  '睡眠改善': ['安神', '养心', '助眠', '宁心', '失眠'],
+  '缓解压力情绪': ['疏肝', '解郁', '安神', '定志', '舒畅'],
+  '肠胃调理': ['健脾', '和胃', '消食', '化湿', '理气', '脾胃'],
+  '免疫力提升': ['益气', '补气', '固表', '免疫', '抵抗'],
+  '体质调理-偏寒': ['温', '散寒', '祛寒', '助阳', '阳虚'],
+  '体质调理-偏热': ['清热', '滋阴', '养阴', '凉血', '阴虚'],
+  '产后恢复': ['补血', '养血', '益气', '通乳'],
+  '学生专注力': ['益智', '健脑', '醒脑', '提神', '开窍'],
+  '护眼放松': ['明目', '清肝', '目赤', '视力', '眼'],
+  '气血调养': ['补血', '养血', '活血', '益气', '气血'],
+  // 人群维度
+  '儿童健康': ['健脾', '消食', '开胃', '益智'],
+  '青春期学生': ['健脾', '益智', '安神', '开胃'],
+  '大学生': ['提神', '安神', '明目', '益智'],
+  '职场久坐族': ['活血', '理气', '通络', '舒筋', '疏肝'],
+  '996人群': ['益气', '安神', '提神', '补气', '解郁'],
+  '夜班工作者': ['安神', '养阴', '滋阴', '清心'],
+  '孕产妈妈': ['补血', '养血', '益气', '健脾'],
+  '备孕家庭': ['补肾', '益精', '调经', '养血'],
+  '中老年群体': ['补肾', '益精', '强筋', '腰膝', '活血'],
+  '银发族': ['补肾', '益气', '养心', '健脑', '活血']
+};
+
+function getSceneSearchableText(item: KnowledgeItem) {
+  return [
+    item.suitable,
+    item.tcmEffect,
+    item.westernNutrition,
+    item.usageMethod,
+    item.taboo,
+    item.category,
+    item.season,
+    getItemTags(item).join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+}
+
+function isSceneOptionActive(key: SceneKey, tagName: string) {
+  if (key === 'season') return selectedSeason.value === tagName;
+  if (key === 'people') return selectedPeople.value === tagName;
+  if (key === 'symptom') return selectedSymptom.value === tagName;
+  return selectedGoal.value === tagName;
+}
+
+function selectSceneOption(key: SceneKey, tagName: string) {
+  if (key === 'season') {
+    selectedSeason.value = selectedSeason.value === tagName ? '' : tagName;
+  } else if (key === 'people') {
+    selectedPeople.value = selectedPeople.value === tagName ? '' : tagName;
+  } else if (key === 'symptom') {
+    selectedSymptom.value = selectedSymptom.value === tagName ? '' : tagName;
+  } else {
+    selectedGoal.value = selectedGoal.value === tagName ? '' : tagName;
+  }
+  currentPage.value = 1;
+}
+
+function clearSceneSelections() {
+  selectedPeople.value = '';
+  selectedSymptom.value = '';
+  selectedGoal.value = '';
+  selectedSeason.value = '';
+  currentPage.value = 1;
 }
 
 function getStorageKeys() {
@@ -185,8 +312,32 @@ const filteredResults = computed(() => {
   const keywordTerm = keyword.value.trim().toLowerCase();
   const effectTerm = effectKeyword.value.trim().toLowerCase();
   const selectedTagsList = selectedTags.value.map((tag) => tag.toLowerCase());
+  const peopleTerm = selectedPeople.value.trim();
+  const symptomTerm = selectedSymptom.value.trim();
+  const goalTerm = selectedGoal.value.trim();
+
+  // 辅助函数：检查条目是否匹配某个场景标签
+  function matchesSceneTag(item: KnowledgeItem, tagName: string): boolean {
+    if (!tagName) return true;
+    
+    // 获取该标签对应的匹配关键词
+    const keywords = tagKeywordMap[tagName] || [tagName];
+    
+    // 搜索范围：中医功效、适合人群、西医营养、季节
+    const searchFields = [
+      item.tcmEffect || '',
+      item.suitable || '',
+      item.westernNutrition || '',
+      item.season || '',
+      item.taboo || ''
+    ].join(' ').toLowerCase();
+    
+    // 只要匹配任意一个关键词即可
+    return keywords.some(kw => searchFields.includes(kw.toLowerCase()));
+  }
 
   return list.filter((item) => {
+    const sceneText = getSceneSearchableText(item);
     if (selectedCategory.value && item.category !== selectedCategory.value) {
       return false;
     }
@@ -206,6 +357,16 @@ const filteredResults = computed(() => {
         itemTags.some((itemTag) => itemTag.includes(tag))
       );
       if (!matchesAll) return false;
+    }
+    // 使用关键词映射进行场景筛选
+    if (peopleTerm && !matchesSceneTag(item, peopleTerm)) {
+      return false;
+    }
+    if (symptomTerm && !matchesSceneTag(item, symptomTerm)) {
+      return false;
+    }
+    if (goalTerm && !matchesSceneTag(item, goalTerm)) {
+      return false;
     }
     if (keywordTerm) {
       const searchableText = [
@@ -255,12 +416,31 @@ const paginatedResults = computed(() => {
 
 const totalCount = computed(() => sortedResults.value.length);
 
-// 获取后端URL
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// 获取后端URL - 使用空字符串让图片通过代理访问
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
+async function loadSceneTags() {
+  sceneLoading.value = true;
+  try {
+    const data = await getSceneTags();
+    if (data) {
+      // 将后端返回的标签数据转换为前端格式
+      sceneOptions.value = {
+        people: data.people || [],
+        symptom: data.symptom || [],
+        season: data.season || [],
+        goal: data.goal || []
+      };
+    }
+  } catch (e) {
+    console.error('加载场景标签失败', e);
+  } finally {
+    sceneLoading.value = false;
+  }
+}
 
 onMounted(async () => {
-  await loadAll();
-  await loadCategories();
+  await Promise.all([loadAll(), loadCategories(), loadSceneTags()]);
   loadFavorites();
   loadTagsMap();
   // 简单判断：如果用户名是admin则显示管理功能
@@ -303,6 +483,9 @@ async function resetFilters() {
   selectedSeason.value = '';
   effectKeyword.value = '';
   selectedTagsInput.value = '';
+  selectedPeople.value = '';
+  selectedSymptom.value = '';
+  selectedGoal.value = '';
   sortOption.value = 'default';
   await loadAll();
 }
@@ -550,6 +733,9 @@ const iconPaths = {
   favorite: "M4.318 6.318a4.5 4.5 0 010-6.364 4.5 4.5 0 016.364 0L12 1.272l1.318-1.318a4.5 4.5 0 116.364 6.364L12 13.364 4.318 6.318z",
   favoriteFilled: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 3.5 4 5.5 4c1.54 0 3.04.99 3.57 2.36h1.87C13.46 4.99 14.96 4 16.5 4 18.5 4 20 6 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
   effect: "M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z",
+  user: "M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v2h16v-2c0-2.761-3.582-5-8-5z",
+  symptom: "M12 2a10 10 0 100 20 10 10 0 000-20zm0 7v4m0 4h.01",
+  target: "M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a6 6 0 100 12 6 6 0 000-12zm0 3a3 3 0 100 6 3 3 0 000-6z",
   science: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
   recommendation: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
   chevronDown: "M19 9l-7 7-7-7",
@@ -779,7 +965,17 @@ async function confirmBatchImport() {
 }
 
 watch(
-  [keyword, selectedCategory, selectedSeason, effectKeyword, selectedTagsInput, sortOption],
+  [
+    keyword,
+    selectedCategory,
+    selectedSeason,
+    effectKeyword,
+    selectedTagsInput,
+    sortOption,
+    selectedPeople,
+    selectedSymptom,
+    selectedGoal
+  ],
   () => {
     currentPage.value = 1;
   }
@@ -803,6 +999,65 @@ watch(
 
     <!-- 搜索和筛选区 -->
     <div class="search-section">
+      <div class="scene-entry">
+        <div class="scene-header">
+          <div class="scene-title">
+            <h2>场景入口</h2>
+            <p>按人群 / 症状 / 季节 / 目标快速收敛内容</p>
+          </div>
+          <button v-if="hasSceneSelection" class="scene-clear" @click="clearSceneSelections">
+            清空场景
+          </button>
+        </div>
+
+        <div class="scene-tabs">
+          <button
+            v-for="tab in sceneTabs"
+            :key="tab.key"
+            class="scene-tab"
+            :class="{ active: sceneActive === tab.key }"
+            @click="sceneActive = tab.key"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path :d="iconPaths[tab.icon]" />
+            </svg>
+            <span>{{ tab.label }}</span>
+          </button>
+        </div>
+
+        <div class="scene-options">
+          <button
+            v-for="tag in sceneOptions[sceneActive]"
+            :key="tag.id"
+            class="scene-chip"
+            :class="{ active: isSceneOptionActive(sceneActive, tag.name) }"
+            @click="selectSceneOption(sceneActive, tag.name)"
+            :title="tag.description || ''"
+          >
+            {{ tag.name }}
+          </button>
+        </div>
+
+        <div v-if="hasSceneSelection" class="scene-active-tags">
+          <span class="scene-label">已选场景</span>
+          <button v-if="selectedPeople" class="scene-active-tag" @click="selectedPeople = ''">
+            人群：{{ selectedPeople }}
+            <span>×</span>
+          </button>
+          <button v-if="selectedSymptom" class="scene-active-tag" @click="selectedSymptom = ''">
+            症状：{{ selectedSymptom }}
+            <span>×</span>
+          </button>
+          <button v-if="selectedSeason" class="scene-active-tag" @click="selectedSeason = ''">
+            季节：{{ selectedSeason }}
+            <span>×</span>
+          </button>
+          <button v-if="selectedGoal" class="scene-active-tag" @click="selectedGoal = ''">
+            目标：{{ selectedGoal }}
+            <span>×</span>
+          </button>
+        </div>
+      </div>
       <div class="search-bar">
         <input
           v-model="keyword"
@@ -1383,6 +1638,139 @@ watch(
   max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.scene-entry {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.scene-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.scene-title h2 {
+  font-size: 18px;
+  margin: 0 0 6px 0;
+  color: var(--text-main);
+}
+
+.scene-title p {
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+
+.scene-clear {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: var(--text-sub);
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scene-clear:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+}
+
+.scene-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.scene-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: white;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scene-tab svg {
+  width: 18px;
+  height: 18px;
+}
+
+.scene-tab.active {
+  color: var(--primary-color);
+  border-color: rgba(16, 185, 129, 0.4);
+  background: #ecfdf5;
+}
+
+.scene-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.scene-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.scene-chip.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.scene-active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.scene-label {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.scene-active-tag {
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: var(--text-main);
+  border-radius: 999px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.scene-active-tag span {
+  color: #94a3b8;
+}
+
+.scene-active-tag:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .search-bar {

@@ -109,6 +109,10 @@ export const generateHealthPlan = (analysisData: unknown) =>
 export const getAllInteractions = () =>
   api.get('/knowledge/interactions').then(r => r.data);
 
+// 场景标签API（人群/症状/季节/目标四维度）
+export const getSceneTags = () =>
+  api.get('/knowledge/scene-tags').then(r => r.data);
+
 export const getInteractionsByItemId = (itemId: number) =>
   api.get(`/knowledge/interactions/item/${itemId}`).then(r => r.data);
 
@@ -128,3 +132,39 @@ export const changePassword = (data: unknown) =>
 // AI动态生成个性化方案
 export const generateAIDynamicPlan = () =>
   api.post('/plan/ai-dynamic').then(r => r.data);
+
+// 每日任务追踪API
+export const getTodayTasks = () =>
+  api.get('/tasks/today').then(r => r.data);
+
+export const completeTask = (taskId: number) =>
+  api.post(`/tasks/${taskId}/complete`).then(r => r.data);
+
+export const uncompleteTask = (taskId: number) =>
+  api.post(`/tasks/${taskId}/uncomplete`).then(r => r.data);
+
+export const getWeeklyProgress = () =>
+  api.get('/tasks/weekly-progress').then(r => r.data);
+
+// 7天计划相关API
+export const generate7DayPlan = () =>
+  api.post('/tasks/generate-7day-plan').then(r => r.data);
+
+export const get7DayPlan = () =>
+  api.get('/tasks/7day-plan').then(r => r.data);
+
+export const updateTaskProgress = (taskId: number, progress: number) =>
+  api.put(`/tasks/${taskId}/progress`, { progress }).then(r => r.data);
+
+export const getPlanHistory = (limit = 10) =>
+  api.get('/tasks/plan-history', { params: { limit } }).then(r => r.data);
+
+// 周报相关API
+export const getWeeklyReport = () =>
+  api.get('/reports/weekly').then(r => r.data);
+
+export const generateWeeklyReport = () =>
+  api.post('/reports/generate-weekly').then(r => r.data);
+
+export const getWeeklyReportList = (limit = 10) =>
+  api.get('/reports/weekly/list', { params: { limit } }).then(r => r.data);

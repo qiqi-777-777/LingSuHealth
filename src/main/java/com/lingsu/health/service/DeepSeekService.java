@@ -408,8 +408,9 @@ public class DeepSeekService {
         prompt.append("1. 请给出一句话的健康状态总结\n");
         prompt.append("2. 从睡眠、运动、饮食、情绪等方面提供3-4条具体建议\n");
         prompt.append("3. 制定明日的个性化养生方案\n");
-        prompt.append("4. 结合中医理论，但用通俗易懂的语言表达\n");
-        prompt.append("5. 保持温和、鼓励的语调\n\n");
+        prompt.append("4. 输出3-5条可执行的明日提醒，提醒尽量带上时间或时段（如 07:30/午餐后/睡前）\n");
+        prompt.append("5. 结合中医理论，但用通俗易懂的语言表达\n");
+        prompt.append("6. 保持温和、鼓励的语调\n\n");
         
         prompt.append("请按以下格式回答：\n");
         prompt.append("【健康总结】\n");
@@ -420,7 +421,11 @@ public class DeepSeekService {
         prompt.append("3. 饮食方面：...\n");
         prompt.append("4. 情绪调节：...\n\n");
         prompt.append("【明日养生方案】\n");
-        prompt.append("（具体的明日建议）");
+        prompt.append("（具体的明日建议）\n\n");
+        prompt.append("【明日提醒】\n");
+        prompt.append("1. 07:30 温水一杯，醒脾暖胃\n");
+        prompt.append("2. 午餐后慢走10分钟\n");
+        prompt.append("3. 睡前30分钟远离屏幕、放松冥想");
         
         return prompt.toString();
     }
@@ -465,7 +470,11 @@ public class DeepSeekService {
         analysis.append("4. 情绪调节：保持心情愉悦，可尝试冥想、音乐等放松方式\n\n");
         
         analysis.append("【明日养生方案】\n");
-        analysis.append("早睡早起，适量运动，清淡饮食，保持心情愉悦。建议晨练15分钟，晚餐后散步30分钟。");
+        analysis.append("早睡早起，适量运动，清淡饮食，保持心情愉悦。建议晨练15分钟，晚餐后散步30分钟。\n\n");
+        analysis.append("【明日提醒】\n");
+        analysis.append("1. 07:30 起床后喝一杯温水\n");
+        analysis.append("2. 午餐后慢走10分钟\n");
+        analysis.append("3. 22:30 进入睡前放松时间");
         
         return analysis.toString();
     }

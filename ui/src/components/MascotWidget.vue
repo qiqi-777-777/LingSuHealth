@@ -1,10 +1,15 @@
 <template>
-  <div class="mascot-widget" ref="widgetRef">
+  <div
+    class="mascot-widget"
+    ref="widgetRef"
+    :style="{ left: posX + 'px', top: posY + 'px' }"
+  >
     <!-- 角色主体 -->
     <div
       class="mascot-character"
-      :class="{ 'is-active': showMenu }"
-      @click="toggleMenu"
+      :class="{ 'is-active': showMenu, 'is-dragging': isDragging }"
+      @mousedown="onDragStart"
+      @click="onCharacterClick"
       @contextmenu.prevent="toggleMenu"
       role="button"
       tabindex="0"
@@ -241,6 +246,52 @@ const widgetRef = ref<HTMLElement | null>(null);
 const showSeasonModal = ref(false);
 const showChatModal = ref(false);
 const showSeasonDetail = ref(false);
+
+// 拖动相关
+const posX = ref(20);
+const posY = ref(0);
+const isDragging = ref(false);
+const hasDragged = ref(false);
+const dragStart = ref({ x: 0, y: 0, left: 0, top: 0 });
+
+function onDragStart(e: MouseEvent) {
+  if ((e.target as HTMLElement).closest('.mascot-menu')) return;
+  hasDragged.value = false;
+  isDragging.value = true;
+  dragStart.value = {
+    x: e.clientX,
+    y: e.clientY,
+    left: posX.value,
+    top: posY.value,
+  };
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+function onMouseMove(e: MouseEvent) {
+  if (!isDragging.value) return;
+  const dx = e.clientX - dragStart.value.x;
+  const dy = e.clientY - dragStart.value.y;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasDragged.value = true;
+  const newX = dragStart.value.left + dx;
+  const newY = dragStart.value.top + dy;
+  // 限制在视口内
+  const padding = 10;
+  const size = 120;
+  posX.value = Math.max(padding, Math.min(window.innerWidth - size - padding, newX));
+  posY.value = Math.max(padding, Math.min(window.innerHeight - size - padding, newY));
+}
+
+function onMouseUp() {
+  isDragging.value = false;
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+}
+
+function onCharacterClick() {
+  if (hasDragged.value) return;
+  toggleMenu();
+}
 type SeasonTip = {
   season?: string;
   principle?: string;
@@ -327,6 +378,8 @@ function startTipRotation() {
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   startTipRotation();
+  // 初始化垂直居中
+  posY.value = Math.max(10, (window.innerHeight - 120) / 2);
 });
 
 onUnmounted(() => {
@@ -338,21 +391,29 @@ onUnmounted(() => {
 <style scoped>
 .mascot-widget {
   position: fixed;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 1000;
   width: 120px;
   height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.mascot-widget:active {
+  cursor: grabbing;
+}
+
+.mascot-character.is-dragging {
+  cursor: grabbing;
+  animation: none;
 }
 
 .mascot-character {
   width: 100%;
   height: 100%;
-  cursor: pointer;
+  cursor: grab;
   position: relative;
   z-index: 1;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

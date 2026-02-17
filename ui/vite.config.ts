@@ -10,15 +10,19 @@ export default defineConfig({
     strictPort: false,
     fs: {
       allow: ['..'],
-    },
+    },git
     // HMR 配置 - 优化热更新，避免完全刷新
     hmr: {
       overlay: true, // 显示错误覆盖层
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 本地开发用这个
+        target: 'http://localhost:8081', // 后端运行在 8081 端口
         // target: 'https://你的后端cpolar地址.cpolar.cn', // 内网穿透时改成这个
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:8081', // 图片资源也通过后端访问
         changeOrigin: true,
       },
     },

@@ -130,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import HumanBodyFigure from './HumanBodyFigure.vue';
 import { checkTodayCheckin } from '../../services/api';
 
@@ -141,8 +141,8 @@ const consultQuery = ref('');
 const isAnalyzing = ref(false);
 const analysisResult = ref<string | null>(null);
 const detectedSymptoms = ref<string[]>([]);
-const latestCheckin = ref<any>(null);
-const latestAssessment = ref<any>(null);
+const latestCheckin = ref<{ sleepHours?: number; mood?: string | number; exerciseMinutes?: number }>();
+const latestAssessment = ref<{ constitution?: string }>();
 
 // 扩展的建议标签列表
 const allSuggestions = [
@@ -166,16 +166,6 @@ const allSuggestions = [
 
 const currentIndex = ref(0);
 let rotateTimer: number | null = null;
-
-// 当前显示的8个建议（两行，每行4个）
-const visibleSuggestions = computed(() => {
-  const result = [];
-  for (let i = 0; i < 8; i++) {
-    const index = (currentIndex.value + i) % allSuggestions.length;
-    result.push(allSuggestions[index]);
-  }
-  return result;
-});
 
 // 启动轮播
 function startRotation() {
@@ -258,12 +248,6 @@ const handleConsult = async () => {
   }
 };
 
-// 点击建议标签：自动填充并发送
-function selectSuggestion(text: string) {
-  consultQuery.value = text;
-  handleConsult();
-}
-
 // 本地简单建议生成（作为降级方案）
 function generateLocalAdvice(query: string, symptoms: string[]): string {
   if (symptoms.length === 0) {
@@ -291,15 +275,15 @@ function generateLocalAdvice(query: string, symptoms: string[]): string {
     '疲劳': '建议您保证充足睡眠，适当运动，均衡饮食。'
   };
   
-  const firstSymptom = symptoms[0];
-  return adviceMap[firstSymptom] || `根据您的描述"${query}"，建议您注意休息，保持良好作息。如症状持续，请及时就医。`;
+  const firstSymptom = symptoms[0] ?? '';
+  return adviceMap[firstSymptom] ?? `根据您的描述"${query}"，建议您注意休息，保持良好作息。如症状持续，请及时就医。`;
 }
 
 // 加载用户健康数据
 async function loadHealthData() {
   try {
     // 加载最新打卡数据
-    const checkinResponse: any = await checkTodayCheckin();
+    const checkinResponse = await checkTodayCheckin();
     if (checkinResponse && typeof checkinResponse === 'object') {
       latestCheckin.value = checkinResponse;
     }

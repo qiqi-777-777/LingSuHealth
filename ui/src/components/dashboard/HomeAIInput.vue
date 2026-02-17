@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
 import AIChatModal from '../AIChatModal.vue';
 
-const router = useRouter();
 const query = ref('');
 const isFocused = ref(false);
 const showChatModal = ref(false);

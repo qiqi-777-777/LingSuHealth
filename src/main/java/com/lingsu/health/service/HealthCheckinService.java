@@ -167,14 +167,29 @@ public class HealthCheckinService {
         }
         
         // 提取明日方案
-        String tomorrowPlan = extractSection(analysis, "【明日养生方案】", null);
+        String tomorrowPlan = extractSection(analysis, "【明日养生方案】", "【明日提醒】");
+        if (tomorrowPlan.isEmpty()) {
+            tomorrowPlan = extractSection(analysis, "【明日养生方案】", "【明日重点任务】");
+        }
+        if (tomorrowPlan.isEmpty()) {
+            tomorrowPlan = extractSection(analysis, "【明日养生方案】", null);
+        }
         checkin.setAnalysisTomorrowPlan(tomorrowPlan);
         
         // 提取风险
         checkin.setAnalysisRisks("[]");
         
         // 明日任务
-        checkin.setAnalysisTomorrowTasks("[]");
+        String remindersRaw = extractSection(analysis, "【明日提醒】", null);
+        if (remindersRaw == null || remindersRaw.isEmpty()) {
+            remindersRaw = extractSection(analysis, "【明日重点任务】", null);
+        }
+        List<String> tomorrowTasks = parseTomorrowTasks(remindersRaw, tomorrowPlan);
+        try {
+            checkin.setAnalysisTomorrowTasks(new ObjectMapper().writeValueAsString(tomorrowTasks));
+        } catch (Exception e) {
+            log.error("明日提醒序列化失败", e);
+        }
     }
     
     private String extractSection(String text, String startTag, String endTag) {
@@ -216,6 +231,42 @@ public class HealthCheckinService {
             }
         }
         return list;
+    }
+
+    private List<String> parseTomorrowTasks(String raw, String fallbackPlan) {
+        List<String> tasks = new ArrayList<>();
+        if (raw != null && !raw.isEmpty()) {
+            String[] lines = raw.split("\n");
+            for (String line : lines) {
+                String cleaned = normalizeTaskLine(line);
+                if (!cleaned.isEmpty()) {
+                    tasks.add(cleaned);
+                }
+            }
+        }
+        if (tasks.isEmpty() && fallbackPlan != null && !fallbackPlan.isEmpty()) {
+            String[] parts = fallbackPlan.split("[。；;\\n、]");
+            for (String part : parts) {
+                String cleaned = part.trim();
+                if (!cleaned.isEmpty()) {
+                    tasks.add(cleaned);
+                }
+                if (tasks.size() >= 4) break;
+            }
+        }
+        if (tasks.size() > 5) {
+            return tasks.subList(0, 5);
+        }
+        return tasks;
+    }
+
+    private String normalizeTaskLine(String line) {
+        if (line == null) return "";
+        String cleaned = line.trim();
+        cleaned = cleaned.replaceFirst("^\\d+[.、)]\\s*", "");
+        cleaned = cleaned.replaceFirst("^[-•]\\s*", "");
+        cleaned = cleaned.replaceFirst("^提醒[:：]\\s*", "");
+        return cleaned.trim();
     }
     
     /**

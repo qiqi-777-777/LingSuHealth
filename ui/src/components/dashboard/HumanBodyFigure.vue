@@ -47,10 +47,20 @@ interface HealthIssue {
   severity: 'low' | 'medium' | 'high';
 }
 
+interface CheckinDataLite {
+  sleepHours?: number
+  mood?: string | number
+  exerciseMinutes?: number
+}
+
+interface AssessmentDataLite {
+  constitution?: string
+}
+
 const props = defineProps<{
-  userSymptoms?: string[]; // 从外部传入的症状
-  checkinData?: any; // 打卡数据
-  assessmentData?: any; // 测评数据
+  userSymptoms?: string[]
+  checkinData?: CheckinDataLite
+  assessmentData?: AssessmentDataLite
 }>();
 
 const healthIssues = ref<HealthIssue[]>([]);
@@ -131,7 +141,7 @@ function analyzeSymptoms(symptoms: string[]) {
 }
 
 // 从打卡数据分析健康问题
-function analyzeCheckinData(data: any) {
+function analyzeCheckinData(data: CheckinDataLite | undefined) {
   const issues: HealthIssue[] = [];
   
   if (data?.sleepHours && data.sleepHours < 6) {
@@ -162,7 +172,7 @@ function analyzeCheckinData(data: any) {
 }
 
 // 从测评数据分析健康问题
-function analyzeAssessmentData(data: any) {
+function analyzeAssessmentData(data: AssessmentDataLite | undefined) {
   const issues: HealthIssue[] = [];
   
   if (data?.constitution) {

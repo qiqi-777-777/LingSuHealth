@@ -21,9 +21,9 @@
       </div>
     </div>
 
-    <!-- 主内容区 -->
+    <!-- 主内容区：左侧表单/结果 + 右侧历史记录 -->
     <div class="main-content">
-      <!-- 左侧：记录表单 -->
+      <!-- 左侧：记录表单（未提交时显示） -->
       <div class="form-panel glass-card" v-if="!showResult">
         <div class="panel-header">
           <div class="header-left">
@@ -219,8 +219,8 @@
         </div>
       </div>
 
-      <!-- AI分析结果展示页 (移入 main-content) -->
-      <div class="result-view" v-if="showResult && analysisResult">
+      <!-- 左侧：AI分析结果（提交后显示） -->
+      <div class="result-view" v-else-if="analysisResult">
          <div class="result-card glass-card">
            <div class="result-header">
              <div class="title-group">
@@ -241,7 +241,7 @@
                </div>
              </div>
            </div>
-  
+ 
            <div class="result-body">
               <!-- 智能总结 -->
               <div class="info-section primary">
@@ -251,7 +251,7 @@
                 </h3>
                 <p>{{ sanitizeText(analysisResult.summary) }}</p>
               </div>
-  
+ 
               <!-- 风险提示 -->
               <div v-if="analysisResult.risks && analysisResult.risks.length" class="info-section danger">
                 <h3>
@@ -265,7 +265,7 @@
                   </li>
                 </ul>
               </div>
-  
+ 
               <!-- 个性化建议 -->
               <div class="info-section info">
                 <h3>
@@ -301,14 +301,14 @@
                    </li>
                  </ul>
               </div>
-  
-               <!-- 趋势图 -->
+ 
+              <!-- 趋势图 -->
               <div class="chart-box">
                 <h3>健康趋势</h3>
                 <canvas ref="chartCanvas" width="600" height="250"></canvas>
               </div>
            </div>
-  
+ 
           <div class="result-footer">
             <button @click="resetForm" class="btn-secondary">再次记录</button>
             <button @click="goHome" class="btn-primary">返回首页</button>
@@ -316,7 +316,7 @@
          </div>
       </div>
 
-      <!-- 右侧：历史记录 -->
+      <!-- 右侧：历史记录（始终显示） -->
       <div class="history-panel glass-card">
 
         <div class="panel-header">
@@ -1431,6 +1431,15 @@ const drawHealthChart = async () => {
   z-index: 10;
   max-width: 1200px;
   margin: 0 auto;
+  align-items: start; /* 让子元素从顶部对齐 */
+}
+
+/* 结果页整体布局：提交后只显示AI报告 */
+.result-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 10;
 }
 
 @media (max-width: 900px) {
@@ -1446,7 +1455,6 @@ const drawHealthChart = async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   border-radius: 24px;
   padding: 32px;
-  min-height: 800px; /* 设置最小高度，防止内容切换时页面跳动 */
 }
 
 /* Form Panel */
@@ -1743,6 +1751,13 @@ const drawHealthChart = async () => {
 }
 
 /* History Panel */
+.history-panel {
+  /* 固定整体高度，仅内部列表滚动；高度不会随数据增多而变化 */
+  height: 650px;
+  display: flex;
+  flex-direction: column;
+}
+
 .history-panel .panel-header h3 { font-size: 20px; margin: 0; font-weight: 600; color: #1e293b; }
 .icon-btn {
   background: white;
@@ -1808,6 +1823,26 @@ const drawHealthChart = async () => {
   flex-direction: column;
   gap: 20px;
   margin-top: 24px;
+  /* 占满 history-panel 剩余空间，自身滚动 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* 自定义滚动条样式 */
+.history-list::-webkit-scrollbar {
+  width: 6px;
+}
+.history-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.history-list::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+.history-list::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 .history-card {
   background: white;

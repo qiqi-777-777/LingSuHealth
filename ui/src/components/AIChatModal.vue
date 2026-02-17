@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="visible" class="modal-overlay" @click="$emit('close')">
+      <div v-if="visible" class="modal-overlay" @click="emit('close')">
         <div class="modal-content chat-modal" @click.stop>
           <div class="modal-header">
             <div class="header-left">
@@ -15,7 +15,7 @@
                 <span class="status-badge">在线</span>
               </div>
             </div>
-            <button class="close-btn" @click="$emit('close')" title="关闭">
+            <button class="close-btn" @click="emit('close')" title="关闭">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6L6 18M6 6l12 12"></path>
               </svg>
@@ -211,7 +211,7 @@ async function sendQuestion() {
 
     const res = await askAssistant(q, history);
     messages.value.push({ type: 'assistant', content: res.answer });
-  } catch (e) {
+  } catch {
     messages.value.push({ type: 'assistant', content: '抱歉，系统暂时繁忙，请稍后再试。' });
   } finally {
     isLoading.value = false;

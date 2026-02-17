@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { getDailyPlan, generateAIDynamicPlan } from '../services/api';
+import { getDailyPlan, generateAIDynamicPlan, getTodayTasks, completeTask, uncompleteTask, getWeeklyProgress } from '../services/api';
 
 defineOptions({ name: 'PlanView' });
 
@@ -12,7 +12,7 @@ const aiLoading = ref(false);
 const aiDynamicLoading = ref(false);
 const constitution = ref('');
 const planItems = ref<PlanItem[]>([]);
-const activeTab = ref<'record' | 'ai'>('record');
+const activeTab = ref<'record' | 'ai' | 'tasks'>('record');
 const aiCategory = ref<'health' | 'season'>('health'); // AI方案分类
 const selectedOption = ref('');
 const selectedSeason = ref('');
@@ -21,6 +21,28 @@ const aiResponse = ref('');
 const recordKeyword = ref('');
 const recordCategory = ref('');
 const copyStatus = ref('');
+
+// 任务追踪相关变量
+interface DailyTask {
+  id: number;
+  category: string;
+  title: string;
+  description: string;
+  frequency: string;
+  intensity: string;
+  targetValue: number;
+  actualValue: number;
+  isCompleted: boolean;
+  source: string;
+}
+const tasksLoading = ref(false);
+const dailyTasks = ref<DailyTask[]>([]);
+const taskProgress = ref(0);
+const weeklyStats = ref<{ totalTasks: number; completedTasks: number; progressPercent: number }>({
+  totalTasks: 0,
+  completedTasks: 0,
+  progressPercent: 0
+});
 
 // AI方案选项
 type IconKey = keyof typeof iconPaths;
@@ -157,8 +179,85 @@ const categoryIcons: Record<string, IconKey> = {
   '茶饮推荐': 'tea',
   '穴位按摩': 'massage',
   '注意事项': 'warning',
-  '季节养生': 'leaf'
+  '季节养生': 'leaf',
+  // 任务类别图标
+  '饮食': 'diet',
+  '运动': 'exercise',
+  '作息': 'sleep',
+  '情绪': 'mood',
+  '茶饮': 'tea'
 };
+
+// 任务追踪函数
+async function loadTodayTasks() {
+  try {
+    tasksLoading.value = true;
+    const data = await getTodayTasks();
+    if (data.success) {
+      dailyTasks.value = data.tasks || [];
+      taskProgress.value = data.progress || 0;
+    }
+  } catch (error) {
+    console.error('加载任务失败:', error);
+  } finally {
+    tasksLoading.value = false;
+  }
+}
+
+async function loadWeeklyStats() {
+  try {
+    const data = await getWeeklyProgress();
+    if (data.success) {
+      weeklyStats.value = {
+        totalTasks: data.totalTasks || 0,
+        completedTasks: data.completedTasks || 0,
+        progressPercent: data.progressPercent || 0
+      };
+    }
+  } catch (error) {
+    console.error('加载周统计失败:', error);
+  }
+}
+
+async function toggleTaskComplete(task: DailyTask) {
+  try {
+    if (task.isCompleted) {
+      await uncompleteTask(task.id);
+      task.isCompleted = false;
+    } else {
+      await completeTask(task.id);
+      task.isCompleted = true;
+    }
+    // 更新进度
+    const completed = dailyTasks.value.filter(t => t.isCompleted).length;
+    taskProgress.value = dailyTasks.value.length > 0 
+      ? Math.round(completed * 100 / dailyTasks.value.length) 
+      : 0;
+    // 更新周统计
+    await loadWeeklyStats();
+  } catch (error) {
+    console.error('更新任务状态失败:', error);
+  }
+}
+
+function getIntensityColor(intensity: string) {
+  const colors: Record<string, string> = {
+    '轻度': '#10b981',
+    '适度': '#3b82f6',
+    '中度': '#f59e0b',
+    '强化': '#ef4444'
+  };
+  return colors[intensity] || '#6b7280';
+}
+
+function getSourceLabel(source: string) {
+  const labels: Record<string, string> = {
+    '体质': '基于体质',
+    '趋势': '趋势调整',
+    'AI': 'AI推荐'
+  };
+  return labels[source] || source;
+}
 
 onMounted(async () => {
   await loadRecordBasedPlan();
@@ -416,6 +515,18 @@ async function generateAIDynamic() {
                 <path :d="iconPaths.aiTab" />
               </svg>
               <span>AI 智能生成</span>
+            </div>
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'tasks' }"
+            @click="activeTab = 'tasks'; loadTodayTasks(); loadWeeklyStats();"
+          >
+            <div class="tab-content">
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <span>任务追踪</span>
             </div>
           </button>
         </div>
@@ -681,6 +792,109 @@ async function generateAIDynamic() {
               </div>
             </transition>
           </div>
+        </div>
+      </transition>
+
+      <!-- 任务追踪 -->
+      <transition name="fade-slide" mode="out-in">
+        <div v-if="activeTab === 'tasks'" key="tasks" class="tasks-content">
+          <div v-if="tasksLoading" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>正在加载任务...</p>
+          </div>
+
+          <template v-else>
+            <div class="progress-card glass-card">
+              <div class="progress-ring-container">
+                <svg class="progress-ring" viewBox="0 0 120 120">
+                  <circle class="progress-ring-bg" cx="60" cy="60" r="52" />
+                  <circle 
+                    class="progress-ring-fill" 
+                    cx="60" cy="60" r="52"
+                    :style="{ 
+                      strokeDasharray: `${2 * Math.PI * 52}`,
+                      strokeDashoffset: `${2 * Math.PI * 52 * (1 - taskProgress / 100)}`
+                    }"
+                  />
+                </svg>
+                <div class="progress-text">
+                  <span class="progress-percent">{{ taskProgress }}%</span>
+                  <span class="progress-label">今日进度</span>
+                </div>
+              </div>
+              <div class="progress-stats">
+                <div class="stat-item">
+                  <span class="stat-value">{{ dailyTasks.filter(t => t.isCompleted).length }}</span>
+                  <span class="stat-label">已完成</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                  <span class="stat-value">{{ dailyTasks.length }}</span>
+                  <span class="stat-label">总任务</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="weekly-stats glass-card">
+              <h3 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                本周统计
+              </h3>
+              <div class="weekly-bar">
+                <div class="weekly-bar-fill" :style="{ width: weeklyStats.progressPercent + '%' }"></div>
+              </div>
+              <p class="weekly-text">本周已完成 <strong>{{ weeklyStats.completedTasks }}</strong> / {{ weeklyStats.totalTasks }} 个任务</p>
+            </div>
+
+            <div class="tasks-list">
+              <h3 class="section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                今日任务
+              </h3>
+
+              <div v-if="dailyTasks.length === 0" class="tasks-empty">
+                <p>暂无任务，请先完成体质测评和健康打卡</p>
+                <button class="reassess-btn" @click="goToAssessment">去测评</button>
+              </div>
+
+              <div v-else class="task-items">
+                <div 
+                  v-for="task in dailyTasks" 
+                  :key="task.id" 
+                  class="task-item glass-card"
+                  :class="{ completed: task.isCompleted }"
+                  @click="toggleTaskComplete(task)"
+                >
+                  <div class="task-checkbox">
+                    <svg v-if="task.isCompleted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div class="task-content">
+                    <div class="task-header">
+                      <span class="task-category">
+                        <svg class="task-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path :d="iconPaths[getCategoryIcon(task.category)]" />
+                        </svg>
+                        {{ task.category }}
+                      </span>
+                      <span class="task-intensity" :style="{ color: getIntensityColor(task.intensity) }">{{ task.intensity }}</span>
+                    </div>
+                    <h4 class="task-title">{{ task.title }}</h4>
+                    <p class="task-description">{{ task.description }}</p>
+                    <div class="task-meta">
+                      <span class="task-source">{{ getSourceLabel(task.source) }}</span>
+                      <span v-if="task.targetValue" class="task-target">目标: {{ task.targetValue }}{{ task.category === '运动' ? '分钟' : '次' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </transition>
     </div>
@@ -1767,6 +1981,278 @@ async function generateAIDynamic() {
   .category-tab {
     padding: 10px 12px;
     font-size: 14px;
+  }
+}
+
+/* ===== 任务追踪样式 ===== */
+.tasks-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.progress-card {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 32px;
+}
+
+.progress-ring-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.progress-ring {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 12;
+}
+
+.progress-ring-fill {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.progress-percent {
+  display: block;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.progress-label {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.progress-stats {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #e2e8f0;
+}
+
+.weekly-stats {
+  padding: 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 16px;
+}
+
+.section-title svg {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color);
+}
+
+.weekly-bar {
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.weekly-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.weekly-text {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.weekly-text strong {
+  color: var(--primary-color);
+}
+
+.tasks-list {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.tasks-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-sub);
+}
+
+.task-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.task-item:hover {
+  transform: translateX(4px);
+}
+
+.task-item.completed {
+  opacity: 0.7;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.task-item.completed .task-title {
+  text-decoration: line-through;
+  color: var(--text-sub);
+}
+
+.task-checkbox {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.task-item.completed .task-checkbox {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.task-checkbox svg {
+  width: 16px;
+  height: 16px;
+  color: white;
+}
+
+.task-content {
+  flex: 1;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.task-category {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+
+.task-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.task-intensity {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.task-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 6px;
+}
+
+.task-description {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.task-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.task-source {
+  color: var(--primary-color);
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.task-target {
+  color: var(--text-sub);
+}
+
+@media (max-width: 600px) {
+  .progress-card {
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+  }
+
+  .progress-stats {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

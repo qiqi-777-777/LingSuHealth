@@ -239,7 +239,7 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    const response = await changePassword({
+    await changePassword({
       username: form.value.username,
       currentPassword: form.value.currentPassword,
       newPassword: form.value.newPassword
@@ -260,8 +260,9 @@ const handleSubmit = async () => {
       router.push('/dashboard')
     }, 2000)
     
-  } catch (err: any) {
-    error.value = err.response?.data?.message || err.message || '修改失败，请检查用户名和密码'
+  } catch (err) {
+    const e = err as { response?: { data?: { message?: string } }; message?: string }
+    error.value = e.response?.data?.message || e.message || '修改失败，请检查用户名和密码'
   } finally {
     loading.value = false
   }

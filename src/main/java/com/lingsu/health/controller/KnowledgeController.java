@@ -16,13 +16,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/knowledge")
 public class KnowledgeController {
-    
+
     @Autowired
     private KnowledgeService knowledgeService;
-    
+
     @Autowired
     private IngredientInteractionService interactionService;
-    
+
     /**
      * 搜索知识库
      */
@@ -30,7 +30,7 @@ public class KnowledgeController {
     public List<KnowledgeItem> search(@RequestParam(required = false) String keyword) {
         return knowledgeService.search(keyword);
     }
-    
+
     /**
      * 获取所有知识库条目
      */
@@ -38,7 +38,7 @@ public class KnowledgeController {
     public List<KnowledgeItem> findAll() {
         return knowledgeService.findAll();
     }
-    
+
     /**
      * 按分类查询
      */
@@ -46,7 +46,7 @@ public class KnowledgeController {
     public List<KnowledgeItem> findByCategory(@PathVariable String category) {
         return knowledgeService.findByCategory(category);
     }
-    
+
     /**
      * 获取所有分类
      */
@@ -54,7 +54,15 @@ public class KnowledgeController {
     public List<String> getCategories() {
         return knowledgeService.getAllCategories();
     }
-    
+
+    /**
+     * 获取场景标签（按人群/症状/季节/目标四个维度分组）
+     */
+    @GetMapping("/scene-tags")
+    public Map<String, List<Map<String, Object>>> getSceneTags() {
+        return knowledgeService.getSceneTags();
+    }
+
     /**
      * 根据ID获取
      */
@@ -66,7 +74,7 @@ public class KnowledgeController {
         }
         return ResponseEntity.ok(item);
     }
-    
+
     /**
      * 创建知识库条目
      */
@@ -74,7 +82,7 @@ public class KnowledgeController {
     public KnowledgeItem create(@RequestBody KnowledgeItem item) {
         return knowledgeService.create(item);
     }
-    
+
     /**
      * 更新知识库条目
      */
@@ -82,7 +90,7 @@ public class KnowledgeController {
     public KnowledgeItem update(@PathVariable Long id, @RequestBody KnowledgeItem item) {
         return knowledgeService.update(id, item);
     }
-    
+
     /**
      * 删除知识库条目
      */
@@ -91,7 +99,7 @@ public class KnowledgeController {
         knowledgeService.delete(id);
         return ResponseEntity.ok().build();
     }
-    
+
     /**
      * 上传图片
      */
@@ -106,7 +114,7 @@ public class KnowledgeController {
             return ResponseEntity.badRequest().build();
         }
     }
-    
+
     /**
      * 获取所有相生相克关系
      */
@@ -114,7 +122,7 @@ public class KnowledgeController {
     public List<IngredientInteraction> getAllInteractions() {
         return interactionService.findAll();
     }
-    
+
     /**
      * 根据食材/药材ID查询相关的相生相克关系
      */
@@ -122,7 +130,7 @@ public class KnowledgeController {
     public List<IngredientInteraction> getInteractionsByItemId(@PathVariable Long itemId) {
         return interactionService.findByItemId(itemId);
     }
-    
+
     /**
      * 根据食材/药材名称查询相关的相生相克关系
      */
