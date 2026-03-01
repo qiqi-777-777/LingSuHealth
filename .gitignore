@@ -31,8 +31,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-# src/main/resources/application.yml
-# src/main/resources/application.properties
+src/main/resources/application.yml
+src/main/resources/application.properties
 !src/main/resources/application.yml.template
 
 # Spring Boot
