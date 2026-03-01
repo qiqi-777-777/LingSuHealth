@@ -27,7 +27,7 @@ mybatis-plus:
 
 deepseek:
   api:
-    key: ${DEEPSEEK_API_KEY:sk-b0b4f0292f8848c483ec8e1a847c6766}
+    key: ${DEEPSEEK_API_KEY}
     url: ${DEEPSEEK_API_URL:https://api.deepseek.com/v1/chat/completions}
 
 # 阿里云短信配置
