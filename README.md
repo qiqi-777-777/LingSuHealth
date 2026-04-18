@@ -100,7 +100,7 @@ spring:
 
 deepseek:
   api:
-    key: sk-b0b4f0292f8848c483ec8e1a847c6766
+    key: ${DEEPSEEK_API_KEY:your_deepseek_api_key_here}
     url: https://api.deepseek.com/v1/chat/completions
 ```
 
@@ -268,7 +268,7 @@ spring:
 ```yaml
 deepseek:
   api:
-    key: sk-b0b4f0292f8848c483ec8e1a847c6766
+    key: ${DEEPSEEK_API_KEY:your_deepseek_api_key_here}
     url: https://api.deepseek.com/v1/chat/completions
 ```
 
