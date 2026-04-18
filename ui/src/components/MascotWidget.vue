@@ -9,6 +9,7 @@
       class="mascot-character"
       :class="{ 'is-active': showMenu, 'is-dragging': isDragging }"
       @mousedown="onDragStart"
+      @touchstart="onTouchStart"
       @click="onCharacterClick"
       @contextmenu.prevent="toggleMenu"
       role="button"
@@ -268,6 +269,29 @@ function onDragStart(e: MouseEvent) {
   document.addEventListener('mouseup', onMouseUp);
 }
 
+function onTouchStart(e: TouchEvent) {
+  if ((e.target as HTMLElement).closest('.mascot-menu')) return;
+  // Prevent default to avoid scrolling while dragging
+  e.preventDefault();
+  hasDragged.value = false;
+  isDragging.value = true;
+  
+  const touch = e.touches[0];
+  if (touch) {
+    dragStart.value = {
+      x: touch.clientX,
+      y: touch.clientY,
+      left: posX.value,
+      top: posY.value,
+    };
+  } else {
+    dragStart.value = { x: 0, y: 0, left: posX.value, top: posY.value };
+  }
+  
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+}
+
 function onMouseMove(e: MouseEvent) {
   if (!isDragging.value) return;
   const dx = e.clientX - dragStart.value.x;
@@ -282,10 +306,37 @@ function onMouseMove(e: MouseEvent) {
   posY.value = Math.max(padding, Math.min(window.innerHeight - size - padding, newY));
 }
 
+function onTouchMove(e: TouchEvent) {
+  if (!isDragging.value) return;
+  e.preventDefault(); // Prevent scrolling while dragging
+  const touch = e.touches[0];
+  if (!touch) return;
+  
+  const dx = touch.clientX - dragStart.value.x;
+  const dy = touch.clientY - dragStart.value.y;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasDragged.value = true;
+  const newX = dragStart.value.left + dx;
+  const newY = dragStart.value.top + dy;
+  const padding = 10;
+  const size = 120;
+  posX.value = Math.max(padding, Math.min(window.innerWidth - size - padding, newX));
+  posY.value = Math.max(padding, Math.min(window.innerHeight - size - padding, newY));
+}
+
 function onMouseUp() {
   isDragging.value = false;
   document.removeEventListener('mousemove', onMouseMove);
   document.removeEventListener('mouseup', onMouseUp);
+}
+
+function onTouchEnd() {
+  isDragging.value = false;
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  // Trigger click if we didn't drag
+  if (!hasDragged.value) {
+    onCharacterClick();
+  }
 }
 
 function onCharacterClick() {
@@ -660,8 +711,8 @@ onUnmounted(() => {
 /* 响应式调整 */
 @media (max-width: 768px) {
   .mascot-widget {
-    left: 10px;
-    bottom: 20px;
+    left: 20px;
+    bottom: 24px;
     width: 90px;
     height: 90px;
   }

@@ -18,8 +18,7 @@ const router = createRouter({
     { path: '/season', component: () => import('../views/Season.vue') },
     { path: '/profile', component: () => import('../views/Profile.vue') },
     { path: '/change-password', component: () => import('../views/ChangePassword.vue') },
-    { path: '/products', component: () => import('../views/Products.vue') },
-    { path: '/recipes', component: () => import('../views/Recipes.vue') },
+
     { path: '/weekly-report', component: () => import('../views/WeeklyReport.vue') },
   ],
 });

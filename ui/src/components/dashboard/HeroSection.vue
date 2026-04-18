@@ -306,10 +306,113 @@ defineEmits<{
 
 @media (max-width: 768px) {
   .hero-quick-actions {
-    flex-direction: column;
+    flex-direction: row; /* Keep row for dual column layout */
     padding-left: 0;
+    gap: 12px;
+    height: 140px; /* Force height matching React example */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 8px; /* Room for scroll */
   }
   
+  .hero-quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .quick-btn {
+    padding: 16px;
+    min-height: auto;
+    border-radius: 24px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    flex-shrink: 0; /* Important for scroll */
+    width: 60%; /* Let them be scrollable cards */
+  }
+  
+  /* Make primary card look like the Solar Term card in example */
+  .quick-btn.primary {
+    flex: 1;
+    background: linear-gradient(to bottom right, #e8f6f0, #d1efe3);
+    border: none;
+  }
+  
+  .quick-btn.primary .btn-icon {
+    display: none; /* Hide default icon, maybe we could replace completely, but for now simplify */
+  }
+  
+  .quick-btn.primary .btn-text {
+    align-items: center;
+  }
+  
+  .quick-btn.primary .btn-title {
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #0b4b32;
+    margin: 4px 0;
+  }
+  
+  .quick-btn.primary .btn-desc {
+    font-size: 11px;
+    color: rgba(11, 75, 50, 0.5);
+  }
+
+  /* Make secondary card look like Today's Summary in example */
+  .quick-btn.secondary {
+    flex: 1.2;
+    padding: 0;
+    border-radius: 24px;
+    background: white;
+    border: 1px solid #f9fafb;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .quick-btn.secondary .btn-icon {
+    display: none;
+  }
+  
+  .quick-btn.secondary .btn-text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .quick-btn.secondary .btn-title {
+    background: #ef4444;
+    color: white;
+    font-size: 13px;
+    padding: 10px 16px;
+    width: 100%;
+    text-align: left;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .quick-btn.secondary .btn-desc {
+    padding: 16px;
+    font-size: 13px;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    background: linear-gradient(to bottom, white, rgba(249, 250, 251, 0.5));
+  }
+
+  /* Hide the ghost Checkin card on mobile as the design only has 2 cards at top */
+  .quick-btn.ghost {
+    display: none;
+  }
+
   .hero-side {
     flex-direction: column;
   }

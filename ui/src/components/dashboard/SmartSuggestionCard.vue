@@ -166,4 +166,31 @@ onMounted(() => {
   height: 60px;
   background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
 }
+
+@media (max-width: 768px) {
+  .cal-header {
+    padding: 10px 16px;
+  }
+  .cal-title {
+    font-size: 13px;
+  }
+  .cal-date {
+    font-size: 12px;
+  }
+  .cal-body {
+    padding: 12px 16px;
+  }
+  .cal-row {
+    font-size: 13px;
+  }
+  .circle-tag {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+  .cal-footer {
+    padding: 10px;
+    font-size: 11px;
+  }
+}
 </style>

@@ -89,8 +89,8 @@ public class DailyTaskService {
         List<HealthTrend> trends = healthTrendMapper.selectList(
                 new QueryWrapper<HealthTrend>()
                         .eq("user_id", userId)
-                        .ge("record_date", startDate)
-                        .orderByAsc("record_date"));
+                        .ge("trend_date", startDate)
+                        .orderByAsc("trend_date"));
 
         Map<String, Object> analysis = new HashMap<>();
 

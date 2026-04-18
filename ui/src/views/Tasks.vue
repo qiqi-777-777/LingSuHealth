@@ -143,7 +143,7 @@ const dailyProgress = ref<Record<string, DayProgress>>({});
 const tasksByDate = ref<Record<string, Task[]>>({});
 const selectedDate = ref('');
 
-const todayStr = computed(() => new Date().toISOString().split('T')[0]);
+const todayStr = computed(() => new Date().toISOString().slice(0, 10));
 
 const progressPercent = computed(() => {
   return planData.value?.progressPercent || 0;
@@ -162,7 +162,7 @@ const totalCount = computed(() => {
 });
 
 function getDayNum(dateStr: string): string {
-  return dateStr.split('-')[2];
+  return dateStr.split('-')[2] ?? '';
 }
 
 function getDayName(dayOfWeek: number): string {
@@ -198,7 +198,7 @@ async function loadPlan() {
           // 选择第一天
           const dates = Object.keys(dailyProgress.value);
           if (dates.length > 0) {
-            selectedDate.value = dates[0];
+            selectedDate.value = dates[0] ?? '';
           }
         }
       }

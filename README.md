@@ -17,23 +17,39 @@
 
 ## 🛠️ 技术栈
 
+### 开发环境
+- **JDK**: 17
+- **Node.js**: `^20.19.0` 或 `>=22.12.0`
+- **MySQL**: 8
+
 ### 后端技术
-- **框架**: Spring Boot 3.1.12
-- **数据库**: MySQL 8.0
-- **ORM**: MyBatis-Plus 3.5.7
-- **安全**: Spring Security (密码加密)
-- **文档**: SpringDoc OpenAPI 2.5.0
-- **AI集成**: DeepSeek API (通过WebFlux调用)
-- **开发工具**: Lombok, Spring DevTools
+- **Spring Boot**: 3.1.12
+- **MyBatis-Plus**: 3.5.7
+- **Maven**
+- **RESTful API**
+- **WebClient**
+- **Lombok**
 
 ### 前端技术
-- **框架**: Vue 3.5
-- **语言**: TypeScript 5.9
-- **构建工具**: Vite 7.1
-- **路由**: Vue Router 4.6
-- **状态管理**: Pinia 3.0
-- **HTTP客户端**: Axios 1.13
-- **图表库**: Chart.js 4.5 + vue-chartjs 5.3
+- **Vue 3**: 3.5.22
+- **TypeScript**: 5.9.0
+- **Vite**: 7.1.11
+- **Vue Router**: 4.6.3
+- **Pinia**: 3.0.3
+- **Axios**: 1.13.1
+
+### 数据可视化与导出
+- **Chart.js**: 4.5.1
+- **vue-chartjs**: 5.3.2
+- **html2canvas**
+- **jsPDF**
+
+### AI 与系统特点
+- **DeepSeek API**
+- **前后端分离架构**
+- **模块化开发**
+- **中医体质测评与节气养生结合**
+- **健康数据分析与智能问答结合**
 
 ### 部署技术
 - **容器化**: Docker + Docker Compose
@@ -43,10 +59,10 @@
 ## 📋 环境要求
 
 ### 开发环境
-- **JDK**: 17+
+- **JDK**: 17
 - **Maven**: 3.6+
-- **Node.js**: 20.19+ 或 22.12+
-- **MySQL**: 8.0+
+- **Node.js**: `^20.19.0` 或 `>=22.12.0`
+- **MySQL**: 8
 - **IDE**: IntelliJ IDEA / VS Code
 
 ### 生产环境

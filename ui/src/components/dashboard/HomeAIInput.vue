@@ -216,6 +216,7 @@ function selectSuggestion(text: string) {
 .greeting-time {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -420,20 +421,141 @@ function selectSuggestion(text: string) {
 }
 
 @media (max-width: 768px) {
-  .greeting-text {
-    font-size: 32px;
-  }
-  
   .ai-home-input {
-    padding: 10px;
+    padding: 10px 0; /* Align with Hero left padding on mobile */
+    gap: 24px;
+  }
+
+  /* 欢迎语调整 */
+  .greeting-text {
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+    color: #0b4b32; /* 深深绿 */
+    display: flex;
+    flex-direction: column;
   }
   
+  .greeting-time {
+    color: #0b4b32;
+    background: none;
+    -webkit-text-fill-color: initial;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+  }
+
+  .greeting-ai {
+    margin-top: 4px;
+  }
+
+  .greeting-sub {
+    font-size: 15px;
+    color: #6b7280;
+    margin-top: 12px;
+    font-weight: 500;
+  }
+
+  /* 输入框调整 */
   .input-wrapper {
-    height: 64px;
+    height: 56px;
+    border-radius: 9999px; /* 全圆角 */
+    padding: 8px 8px 8px 24px;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.08);
+    border: 1px solid white;
+    background: white;
   }
-  
+
+  .input-wrapper.focused {
+    border-color: #86efac;
+    transform: none;
+  }
+
+  /* Leaf icon wrapper */
+  .input-icon {
+    width: 24px;
+    height: 24px;
+    color: #4ade80; /* 叶子浅绿 */
+    margin-right: 8px;
+  }
+  .input-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
   .main-input {
     font-size: 16px;
+    padding: 0;
+    font-weight: 500;
+  }
+
+  .main-input::placeholder {
+    color: #d1d5db;
+  }
+
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    box-shadow: none;
+  }
+
+  .send-btn:hover:not(:disabled) {
+    background: #e2e8f0;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .send-btn:disabled {
+    background: #f1f5f9;
+    color: #cbd5e1;
+  }
+
+  .send-btn svg {
+    margin-left: 2px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* 隐藏呼吸光效以符合极简设计 */
+  .breathing-glow {
+    display: none;
+  }
+
+  /* 建议标签优化 */
+  .suggestion-container {
+    mask-image: none;
+    -webkit-mask-image: none;
+    padding-bottom: 4px;
+  }
+  
+  /* 在手机端，把滚动变成用户可横向滑动的容器 */
+  .scroll-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    padding-bottom: 4px;
+  }
+  .scroll-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scroll-track {
+    animation: none !important; /* 取消自动滚动，让用户自己划 */
+    padding: 0 4px;
+  }
+
+  .chip {
+    padding: 8px 16px;
+    font-size: 13px;
+    border-radius: 9999px;
+    background: white;
+    border: 1px solid #f3f4f6;
+    color: #4b5563;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
 }
 </style>

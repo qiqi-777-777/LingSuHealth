@@ -57,19 +57,6 @@
           </svg>
           <span>AI助手</span>
         </a>
-        <!-- 原有链接保留 -->
-        <a href="#" @click.prevent="$emit('navigate', '/products')" class="nav-link">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-          </svg>
-          <span>养生商品</span>
-        </a>
-        <a href="#" @click.prevent="$emit('navigate', '/recipes')" class="nav-link">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-          </svg>
-          <span>养生食谱</span>
-        </a>
       </nav>
     </div>
   </header>
@@ -334,24 +321,66 @@ function toggleUserMenu() {
   background: #fef2f2;
 }
 
-/* 响应式设计 */
+/* 响应式设计 (手机端适配参考 React 示例) */
 @media (max-width: 768px) {
   .top-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
-    padding: 16px 20px;
+    flex-direction: row; /* 横向排列 */
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 20px 12px 20px; /* Increased top padding matching pt-5 */
+    background: rgba(240, 248, 245, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: none;
+    position: sticky; /* 顶部固定 */
+    top: 0;
+    z-index: 100;
+    gap: 0;
   }
 
-  .header-right {
-    width: 100%;
+  .header-left {
+    width: auto;
+    gap: 8px;
     justify-content: flex-start;
   }
+
+  /* 汉堡菜单按钮占据右侧原本导航的位置 */
+  .header-right {
+    width: auto;
+    display: flex;
+  }
   
+  /* 隐藏桌面端右上角的图标导航栏，我们在下面HeroSection里重做快捷入口 */
   .header-nav {
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: 4px;
+    display: none;
+  }
+
+  .user-menu-container {
+    margin-right: 0; /* 移除桌面端边距 */
+  }
+
+  /* 修改头像样式紧凑 */
+  .user-avatar {
+    width: 40px;
+    height: 40px;
+    border-color: #f3f4f6;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0b4b32; /* 深深绿 */
+    gap: 6px;
+  }
+
+  .logo-icon {
+    width: 22px;
+    height: 22px;
+    color: #34d399; /* 亮绿 */
+  }
+  
+  .logo-icon svg {
+    width: 22px;
+    height: 22px;
   }
 }
 </style>

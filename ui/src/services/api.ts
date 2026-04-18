@@ -8,9 +8,14 @@ const api = axios.create({ baseURL });
 // 添加请求拦截器，自动添加用户认证信息
 api.interceptors.request.use(
   (config) => {
+    // 增加 ngrok 绕过浏览器警告页面的请求头
+    if (config.headers) {
+      config.headers['ngrok-skip-browser-warning'] = 'true'; // 绕过ngrok警告页
+    }
+
     // 从localStorage获取用户名
     const username = localStorage.getItem('username');
-    if (username) {
+    if (username && config.headers) {
       config.headers['X-Username'] = username;
     }
     return config;

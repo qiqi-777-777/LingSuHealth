@@ -1,10 +1,13 @@
 <template>
-  <MascotWidget />
+  <MascotWidget v-if="route.path !== '/login'" />
   <router-view />
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router';
 import MascotWidget from './components/MascotWidget.vue';
+
+const route = useRoute();
 </script>
 
 <style>
@@ -54,11 +57,13 @@ body {
 
 body {
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 #app {
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 只定制 #app 自己的滚动条，减少嵌套滚动条的视觉干扰 */

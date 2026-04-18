@@ -1,12 +1,11 @@
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import router from '../router';
 
 // 使用模块级别的变量，在 HMR 时保持状态
 const _username = ref<string | null>(null);
 let _isInitialized = false;
 
 export function useAuth() {
-  const router = useRouter();
 
   // 只在第一次调用时从 localStorage 初始化
   if (!_isInitialized) {

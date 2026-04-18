@@ -215,4 +215,42 @@ defineEmits<{
   border-radius: 50%; /* Fallback shape */
   background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%);
 }
+
+@media (max-width: 768px) {
+  .feature-cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .quick-btn {
+    padding: 16px;
+    border-radius: 20px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+  
+  .btn-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .btn-title {
+    font-size: 14px;
+    font-weight: 800;
+  }
+  
+  .btn-desc {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: -2px;
+  }
+}
 </style>

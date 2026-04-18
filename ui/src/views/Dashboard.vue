@@ -265,9 +265,47 @@ function handleClickOutside(event: Event) {
   z-index: 1;
 }
 
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+}
+
 @media (max-width: 768px) {
+  .dashboard-container {
+    background: #f0f8f5; /* Outer background to simulate the App canvas */
+    background-image: none;
+    align-items: center; /* Center the wrapper */
+  }
+
   .main-content {
-    padding: 100px 20px 20px 20px;
+    background: #f0f8f5;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 12px 0px 80px 0px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); /* Adding the shadow-2xl from the example */
+  }
+  
+  .dashboard-grid {
+    gap: 20px;
+    padding-top: 0;
+  }
+  
+  .left-column, .right-column {
+    padding-left: 20px; /* Matched the px-5 from the example */
+    padding-right: 20px;
+  }
+
+  .side-widgets-row {
+    flex-direction: row; 
+    gap: 12px;
+  }
+  
+  .widget-wrapper.compact {
+    height: auto;
+    min-height: 180px;
   }
 }
 </style>
